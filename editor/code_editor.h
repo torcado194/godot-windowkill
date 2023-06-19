@@ -234,6 +234,7 @@ public:
 	void move_lines_down();
 	void delete_lines();
 	void duplicate_selection();
+	void duplicate_lines();
 
 	/// Toggle inline comment on currently selected lines, or on current line if nothing is selected,
 	/// by adding or removing comment delimiter
