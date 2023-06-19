@@ -804,6 +804,11 @@ void CodeTextEditor::input(const Ref<InputEvent> &event) {
 		accept_event();
 		return;
 	}
+	if (ED_IS_SHORTCUT("script_text_editor/duplicate_line", key_event)) {
+		duplicate_lines();
+		accept_event();
+		return;
+	}
 }
 
 void CodeTextEditor::_text_editor_gui_input(const Ref<InputEvent> &p_event) {
@@ -1464,6 +1469,133 @@ void CodeTextEditor::duplicate_selection() {
 	text_editor->end_complex_operation();
 	text_editor->queue_redraw();
 }
+
+void CodeTextEditor::duplicate_lines() {
+	text_editor->begin_complex_operation();
+
+	Vector<int> caret_edit_order = text_editor->get_caret_index_edit_order();
+	for (const int &caret_index : caret_edit_order) {
+		// The text that will be inserted. All lines in one string.
+		String insert_text;
+
+		// The new line position of the caret after the operation.
+		int caret_line = text_editor->get_caret_line(caret_index);
+		// The new column position of the caret after the operation.
+		int caret_column = text_editor->get_caret_column(caret_index);
+		// The caret positions of the selection. Stays -1 if there is no selection.
+		int select_from_line = -1;
+		int select_to_line = -1;
+		int select_from_column = -1;
+		int select_to_column = -1;
+		// Number of lines of the selection.
+		int select_num_lines = -1;
+
+		if (text_editor->has_selection(caret_index)) {
+			select_from_line = text_editor->get_selection_from_line(caret_index);
+			select_to_line = text_editor->get_selection_to_line(caret_index);
+			select_from_column = text_editor->get_selection_from_column(caret_index);
+			select_to_column = text_editor->get_selection_to_column(caret_index);
+			select_num_lines = select_to_line - select_from_line + 1;
+
+			for (int i = select_from_line; i <= select_to_line; i++) {
+				insert_text += "\n" + text_editor->get_line(i);
+			}
+
+			caret_line += select_num_lines;
+
+			for (int i = select_from_line; i <= select_to_line; i++) {
+				text_editor->unfold_line(i);
+			}
+		} else {
+			select_to_line = caret_line;
+
+			insert_text = "\n" + text_editor->get_line(caret_line);
+			caret_line++;
+
+			text_editor->unfold_line(text_editor->get_caret_line(caret_index));
+		}
+
+		// The text will be inserted at the end of the current line.
+		text_editor->set_caret_line(select_to_line, true, true, 0, caret_index);
+		text_editor->set_caret_column(text_editor->get_line(select_to_line).length(), true, caret_index);
+
+		text_editor->deselect(caret_index);
+
+		text_editor->insert_text_at_caret(insert_text, caret_index);
+		text_editor->set_caret_line(caret_line, true, true, 0, caret_index);
+		text_editor->set_caret_column(caret_column, true, caret_index);
+
+		if (select_from_line != -1) {
+			// Advance the selection by the number of duplicated lines.
+			select_from_line += select_num_lines;
+			select_to_line += select_num_lines;
+			text_editor->select(select_from_line, select_from_column, select_to_line, select_to_column, caret_index);
+		}
+	}
+
+	text_editor->merge_overlapping_carets();
+	text_editor->end_complex_operation();
+	text_editor->queue_redraw();
+}
+
+// void CodeTextEditor::select_add_next_occurrence() {
+// 	text_editor->begin_complex_operation();
+
+// 	String find_text = "";
+// 	bool all_matching = true;
+// 	int last_line = -1;
+// 	int last_column = -1;
+
+// 	Vector<int> caret_edit_order = text_editor->get_caret_index_edit_order();
+// 	for (const int &caret_index : caret_edit_order) {
+
+// 		int end_line = -1;
+// 		int end_column = -1;
+
+// 		if (text_editor->has_selection(caret_index)) {
+// 			int select_to_line = text_editor->get_selection_to_line(caret_index);
+// 			int select_to_column = text_editor->get_selection_to_column(caret_index);
+// 			end_line = select_to_line;
+// 			end_column = select_to_column;
+
+// 			String text = text_editor->get_selected_text(caret_index);
+// 			if (find_text == "") {
+// 				find_text = text;
+// 			} else if (find_text != text) {
+// 				all_matching = false;
+// 			}
+// 		} else {
+// 			int caret_line = text_editor->get_caret_line(caret_index);
+// 			int caret_column = text_editor->get_caret_column(caret_index);
+// 			end_line = caret_line;
+// 			end_column = caret_column;
+			
+// 			all_matching = false;
+// 			text_editor->select_word_under_caret(caret_index);
+// 		}
+
+// 		if (end_line > last_line) {
+// 			last_line = end_line;
+// 			last_column = end_column;
+// 		} else if (end_line == last_line && end_column > last_column) {
+// 			last_column = end_column;
+// 		}
+// 	}
+
+// 	if (all_matching) {
+// 		Point2i search_result = text_editor->search(find_text, 0, last_line, last_column);
+
+// 		/* if (search_result.y == -1) {
+// 			search_result = text_editor->search(find_text, 0, last_line, last_column);
+// 		} */
+
+// 		text_editor->select(search_result.y, search_result.x, search_result.y, search_result.x + find_text.length(), 0);
+// 	}
+
+// 	text_editor->merge_overlapping_carets();
+// 	text_editor->end_complex_operation();
+// 	text_editor->queue_redraw();
+// }
 
 void CodeTextEditor::toggle_inline_comment(const String &delimiter) {
 	text_editor->begin_complex_operation();

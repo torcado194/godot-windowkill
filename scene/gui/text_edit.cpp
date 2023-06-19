@@ -2111,7 +2111,12 @@ void TextEdit::gui_input(const Ref<InputEvent> &p_gui_input) {
 				return;
 			}
 			if (k->is_action("ui_text_add_selection_for_next_occurrence", true)) {
-				add_selection_for_next_occurrence();
+				add_selection_for_next_occurrence(false);
+				accept_event();
+				return;
+			}
+			if (k->is_action("ui_text_skip_selection_for_next_occurrence", true)) {
+				add_selection_for_next_occurrence(true);
 				accept_event();
 				return;
 			}
@@ -5069,7 +5074,7 @@ void TextEdit::select_word_under_caret(int p_caret) {
 	merge_overlapping_carets();
 }
 
-void TextEdit::add_selection_for_next_occurrence() {
+void TextEdit::add_selection_for_next_occurrence(bool skip) {
 	if (!selecting_enabled || !is_multiple_carets_enabled()) {
 		return;
 	}
@@ -5099,6 +5104,12 @@ void TextEdit::add_selection_for_next_occurrence() {
 
 	int to_column = get_selection_to_column(caret) + 1;
 	int end = next_occurrence.x + (to_column - column);
+
+	if (skip) {
+		deselect(caret);
+		remove_caret(caret);
+	}
+	
 	int new_caret = add_caret(next_occurrence.y, end);
 
 	if (new_caret != -1) {
