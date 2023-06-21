@@ -2938,7 +2938,7 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 		} break;
 		case HELP_COPY_SYSTEM_INFO: {
 			String info = _get_system_info();
-			DisplayServer::get_singleton()->clipboard_set(info);
+			DisplayServer::get_singleton()->clipboard_set_text(info);
 		} break;
 		case HELP_SUGGEST_A_FEATURE: {
 			OS::get_singleton()->shell_open("https://github.com/godotengine/godot-proposals#readme");
