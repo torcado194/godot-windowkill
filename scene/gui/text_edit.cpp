@@ -6641,11 +6641,8 @@ void TextEdit::_cut_internal(int p_caret) {
 		return;
 	}
 
-	if (has_selection()) {
-		DisplayServer::get_singleton()->clipboard_set_text(get_selected_text());
-		delete_selection();
 	if (has_selection(p_caret)) {
-		DisplayServer::get_singleton()->clipboard_set(get_selected_text(p_caret));
+		DisplayServer::get_singleton()->clipboard_set_text(get_selected_text(p_caret));
 		delete_selection(p_caret);
 		cut_copy_line = "";
 		return;
@@ -6668,9 +6665,6 @@ void TextEdit::_cut_internal(int p_caret) {
 		int indent_level = get_indent_level(cl);
 		double hscroll = get_h_scroll();
 
-	String clipboard = text[cl];
-	DisplayServer::get_singleton()->clipboard_set_text(clipboard);
-	set_caret_column(0);
 		// Check for overlapping carets.
 		// We don't need to worry about selections as that is caught before this entire section.
 		for (int j = i - 1; j >= 0; j--) {
@@ -6714,29 +6708,19 @@ void TextEdit::_cut_internal(int p_caret) {
 	}
 	end_complex_operation();
 
-void TextEdit::_copy_internal() {
-	if (has_selection()) {
-		DisplayServer::get_singleton()->clipboard_set_text(get_selected_text());
 	String clipboard_string = clipboard.as_string();
-	DisplayServer::get_singleton()->clipboard_set(clipboard_string);
+	DisplayServer::get_singleton()->clipboard_set_text(clipboard_string);
 	cut_copy_line = clipboard_string;
 }
 
 void TextEdit::_copy_internal(int p_caret) {
 	ERR_FAIL_COND(p_caret > carets.size());
 	if (has_selection(p_caret)) {
-		DisplayServer::get_singleton()->clipboard_set(get_selected_text(p_caret));
+		DisplayServer::get_singleton()->clipboard_set_text(get_selected_text(p_caret));
 		cut_copy_line = "";
 		return;
 	}
 
-	int cl = get_caret_line();
-	if (text[cl].length() != 0) {
-		String clipboard = _base_get_text(cl, 0, cl, text[cl].length());
-		DisplayServer::get_singleton()->clipboard_set_text(clipboard);
-		cut_copy_line = clipboard;
-	}
-}
 	StringBuilder clipboard;
 	Vector<int> caret_edit_order = get_caret_index_edit_order();
 	for (int i = caret_edit_order.size() - 1; i >= 0; i--) {
@@ -6755,7 +6739,7 @@ void TextEdit::_copy_internal(int p_caret) {
 	}
 
 	String clipboard_string = clipboard.as_string();
-	DisplayServer::get_singleton()->clipboard_set(clipboard_string);
+	DisplayServer::get_singleton()->clipboard_set_text(clipboard_string);
 	cut_copy_line = clipboard_string;
 }
 
@@ -6766,7 +6750,6 @@ void TextEdit::_paste_internal(int p_caret) {
 	}
 
 	String clipboard = DisplayServer::get_singleton()->clipboard_get_text();
-	String clipboard = DisplayServer::get_singleton()->clipboard_get();
 	Vector<String> clipboad_lines = clipboard.split("\n");
 	bool insert_line_per_caret = p_caret == -1 && carets.size() > 1 && clipboad_lines.size() == carets.size();
 
