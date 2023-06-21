@@ -319,7 +319,7 @@ namespace GodotTools.Build
                     }
 
                     if (text != null)
-                        DisplayServer.ClipboardSet(text);
+                        DisplayServer.ClipboardSetText(text);
                     break;
                 }
                 default:

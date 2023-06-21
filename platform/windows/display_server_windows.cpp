@@ -38,6 +38,9 @@
 #include "main/main.h"
 #include "scene/resources/atlas_texture.h"
 
+#include <avrt.h>
+#include <drivers/png/png_driver_common.h>
+
 #if defined(GLES3_ENABLED)
 #include "drivers/gles3/rasterizer_gles3.h"
 #endif
@@ -395,7 +398,7 @@ BitField<MouseButtonMask> DisplayServerWindows::mouse_get_button_state() const {
 	return last_button_state;
 }
 
-void DisplayServerWindows::clipboard_set(const String &p_text) {
+void DisplayServerWindows::clipboard_set_text(const String &p_text) {
 	_THREAD_SAFE_METHOD_
 
 	if (!windows.has(MAIN_WINDOW_ID)) {
@@ -436,7 +439,7 @@ void DisplayServerWindows::clipboard_set(const String &p_text) {
 	CloseClipboard();
 }
 
-String DisplayServerWindows::clipboard_get() const {
+String DisplayServerWindows::clipboard_get_text() const {
 	_THREAD_SAFE_METHOD_
 
 	if (!windows.has(MAIN_WINDOW_ID)) {
@@ -513,7 +516,7 @@ Ref<Image> DisplayServerWindows::clipboard_get_image() const {
 					}
 				}
 				image.instantiate();
-				image->create_from_data(info->biWidth, info->biHeight, false, Image::Format::FORMAT_RGBA8, pba);
+				image->create(info->biWidth, info->biHeight, false, Image::Format::FORMAT_RGBA8, pba);
 
 				GlobalUnlock(mem);
 			}
@@ -525,15 +528,14 @@ Ref<Image> DisplayServerWindows::clipboard_get_image() const {
 	return image;
 }
 
-bool DisplayServerWindows::clipboard_has() const {
+bool DisplayServerWindows::clipboard_has_text() const {
 	return (IsClipboardFormatAvailable(CF_TEXT) ||
 			IsClipboardFormatAvailable(CF_UNICODETEXT) ||
 			IsClipboardFormatAvailable(CF_OEMTEXT));
 }
 
 bool DisplayServerWindows::clipboard_has_image() const {
-	UINT png_format = RegisterClipboardFormatA("PNG");
-	return ((png_format && IsClipboardFormatAvailable(png_format)) || IsClipboardFormatAvailable(CF_DIB));
+	return IsClipboardFormatAvailable(CF_DIB);
 }
 
 typedef struct {
