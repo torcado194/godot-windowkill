@@ -723,33 +723,6 @@ bool LineEdit::_is_over_clear_button(const Point2 &p_pos) const {
 	return p_pos.x > get_size().width - icon->get_width() - x_ofs;
 }
 
-void LineEdit::_update_theme_item_cache() {
-	Control::_update_theme_item_cache();
-
-	theme_cache.normal = get_theme_stylebox(SNAME("normal"));
-	theme_cache.read_only = get_theme_stylebox(SNAME("read_only"));
-	theme_cache.focus = get_theme_stylebox(SNAME("focus"));
-
-	theme_cache.font = get_theme_font(SNAME("font"));
-	theme_cache.font_size = get_theme_font_size(SNAME("font_size"));
-	theme_cache.font_color = get_theme_color(SNAME("font_color"));
-	theme_cache.font_uneditable_color = get_theme_color(SNAME("font_uneditable_color"));
-	theme_cache.font_selected_color = get_theme_color(SNAME("font_selected_color"));
-	theme_cache.font_outline_size = get_theme_constant(SNAME("outline_size"));
-	theme_cache.font_outline_color = get_theme_color(SNAME("font_outline_color"));
-	theme_cache.font_placeholder_color = get_theme_color(SNAME("font_placeholder_color"));
-	theme_cache.caret_width = get_theme_constant(SNAME("caret_width"));
-	theme_cache.caret_color = get_theme_color(SNAME("caret_color"));
-	theme_cache.minimum_character_width = get_theme_constant(SNAME("minimum_character_width"));
-	theme_cache.selection_color = get_theme_color(SNAME("selection_color"));
-
-	theme_cache.clear_icon = get_theme_icon(SNAME("clear"));
-	theme_cache.clear_button_color = get_theme_color(SNAME("clear_button_color"));
-	theme_cache.clear_button_color_pressed = get_theme_color(SNAME("clear_button_color_pressed"));
-
-	theme_cache.base_scale = get_theme_default_base_scale();
-}
-
 void LineEdit::_notification(int p_what) {
 	switch (p_what) {
 #ifdef TOOLS_ENABLED
@@ -1168,13 +1141,13 @@ void LineEdit::_notification(int p_what) {
 
 void LineEdit::copy_text() {
 	if (selection.enabled && !pass) {
-		DisplayServer::get_singleton()->clipboard_set(get_selected_text());
+		DisplayServer::get_singleton()->clipboard_set_text(text.substr(selection.begin, selection.end - selection.begin));
 	}
 }
 
 void LineEdit::cut_text() {
 	if (editable && selection.enabled && !pass) {
-		DisplayServer::get_singleton()->clipboard_set(get_selected_text());
+		DisplayServer::get_singleton()->clipboard_set_text(text.substr(selection.begin, selection.end - selection.begin));
 		selection_delete();
 	}
 }
@@ -1185,7 +1158,7 @@ void LineEdit::paste_text() {
 	}
 
 	// Strip escape characters like \n and \t as they can't be displayed on LineEdit.
-	String paste_buffer = DisplayServer::get_singleton()->clipboard_get().strip_escapes();
+	String paste_buffer = DisplayServer::get_singleton()->clipboard_get_text().strip_escapes();
 
 	if (!paste_buffer.is_empty()) {
 		int prev_len = text.length();

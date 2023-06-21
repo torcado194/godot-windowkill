@@ -879,8 +879,8 @@ void ScriptEditor::_close_docs_tab() {
 void ScriptEditor::_copy_script_path() {
 	ScriptEditorBase *se = _get_current_editor();
 	if (se) {
-		Ref<Resource> scr = se->get_edited_resource();
-		DisplayServer::get_singleton()->clipboard_set(scr->get_path());
+		Ref<Resource> script = se->get_edited_resource();
+		DisplayServer::get_singleton()->clipboard_set_text(script->get_path());
 	}
 }
 

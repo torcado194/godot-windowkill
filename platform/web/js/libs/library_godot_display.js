@@ -528,8 +528,8 @@ const GodotDisplay = {
 	/*
 	 * Clipboard
 	 */
-	godot_js_display_clipboard_set__sig: 'ii',
-	godot_js_display_clipboard_set: function (p_text) {
+	godot_js_display_clipboard_set_text__sig: 'ii',
+	godot_js_display_clipboard_set_text: function (p_text) {
 		const text = GodotRuntime.parseString(p_text);
 		if (!navigator.clipboard || !navigator.clipboard.writeText) {
 			return 1;
@@ -541,8 +541,8 @@ const GodotDisplay = {
 		return 0;
 	},
 
-	godot_js_display_clipboard_get__sig: 'ii',
-	godot_js_display_clipboard_get: function (callback) {
+	godot_js_display_clipboard_get_text__sig: 'ii',
+	godot_js_display_clipboard_get_text: function (callback) {
 		const func = GodotRuntime.get_func(callback);
 		try {
 			navigator.clipboard.readText().then(function (result) {

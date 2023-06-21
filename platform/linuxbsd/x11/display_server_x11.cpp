@@ -465,7 +465,7 @@ BitField<MouseButtonMask> DisplayServerX11::mouse_get_button_state() const {
 	return last_button_state;
 }
 
-void DisplayServerX11::clipboard_set(const String &p_text) {
+void DisplayServerX11::clipboard_set_text(const String &p_text) {
 	_THREAD_SAFE_METHOD_
 
 	{
@@ -646,7 +646,7 @@ String DisplayServerX11::_clipboard_get_impl(Atom p_source, Window x11_window, A
 	return ret;
 }
 
-String DisplayServerX11::_clipboard_get(Atom p_source, Window x11_window) const {
+String DisplayServerX11::_clipboard_get_text(Atom p_source, Window x11_window) const {
 	String ret;
 	Atom utf8_atom = XInternAtom(x11_display, "UTF8_STRING", True);
 	if (utf8_atom != None) {
@@ -658,14 +658,14 @@ String DisplayServerX11::_clipboard_get(Atom p_source, Window x11_window) const 
 	return ret;
 }
 
-String DisplayServerX11::clipboard_get() const {
+String DisplayServerX11::clipboard_get_text() const {
 	_THREAD_SAFE_METHOD_
 
 	String ret;
-	ret = _clipboard_get(XInternAtom(x11_display, "CLIPBOARD", 0), windows[MAIN_WINDOW_ID].x11_window);
+	ret = _clipboard_get_text(XInternAtom(x11_display, "CLIPBOARD", 0), windows[MAIN_WINDOW_ID].x11_window);
 
 	if (ret.is_empty()) {
-		ret = _clipboard_get(XA_PRIMARY, windows[MAIN_WINDOW_ID].x11_window);
+		ret = _clipboard_get_text(XA_PRIMARY, windows[MAIN_WINDOW_ID].x11_window);
 	}
 
 	return ret;
@@ -675,10 +675,10 @@ String DisplayServerX11::clipboard_get_primary() const {
 	_THREAD_SAFE_METHOD_
 
 	String ret;
-	ret = _clipboard_get(XInternAtom(x11_display, "PRIMARY", 0), windows[MAIN_WINDOW_ID].x11_window);
+	ret = _clipboard_get_text(XInternAtom(x11_display, "PRIMARY", 0), windows[MAIN_WINDOW_ID].x11_window);
 
 	if (ret.is_empty()) {
-		ret = _clipboard_get(XA_PRIMARY, windows[MAIN_WINDOW_ID].x11_window);
+		ret = _clipboard_get_text(XA_PRIMARY, windows[MAIN_WINDOW_ID].x11_window);
 	}
 
 	return ret;
