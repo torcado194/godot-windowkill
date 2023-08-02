@@ -141,7 +141,19 @@ Node *SceneState::instantiate(GenEditState p_edit_state) const {
 		Node *node = nullptr;
 		MissingNode *missing_node = nullptr;
 
-		if (i == 0 && base_scene_idx >= 0) {
+		bool disabled = false;
+		if (!Engine::get_singleton()->is_editor_hint()) {
+			disabled = n.disabled > 0;
+			if (parent) {
+				if (parent->get_scene_disabled()) {
+					disabled = true;
+				}
+			}
+		}
+		if (disabled) {
+			node = Object::cast_to<Node>(memnew(Node));
+			node->set_scene_disabled(true);
+		} else if (i == 0 && base_scene_idx >= 0) {
 			//scene inheritance on root node
 			Ref<PackedScene> sdata = props[base_scene_idx];
 			ERR_FAIL_COND_V(!sdata.is_valid(), nullptr);
@@ -227,6 +239,8 @@ Node *SceneState::instantiate(GenEditState p_edit_state) const {
 		if (node) {
 			// may not have found the node (part of instantiated scene and removed)
 			// if found all is good, otherwise ignore
+
+			node->set_scene_disabled(disabled || n.disabled > 0);
 
 			//properties
 			int nprop_count = n.properties.size();
@@ -758,6 +772,8 @@ Error SceneState::_parse_node(Node *p_owner, Node *p_node, int p_parent_idx, Has
 		// instead, save that it was instantiated
 		nd.type = TYPE_INSTANTIATED;
 	}
+
+	nd.disabled = p_node->get_scene_disabled();
 
 	// determine whether to save this node or not
 	// if this node is part of an instantiated sub-scene, we can skip storing it if basically
@@ -1536,6 +1552,10 @@ String SceneState::get_node_instance_placeholder(int p_idx) const {
 	return String();
 }
 
+bool SceneState::get_node_disabled(int p_idx) const {
+	return nodes[p_idx].disabled > 0;
+}
+
 Vector<StringName> SceneState::get_node_groups(int p_idx) const {
 	ERR_FAIL_INDEX_V(p_idx, nodes.size(), Vector<StringName>());
 	Vector<StringName> groups;
@@ -1744,13 +1764,14 @@ int SceneState::add_node_path(const NodePath &p_path) {
 	return (node_paths.size() - 1) | FLAG_ID_IS_PATH;
 }
 
-int SceneState::add_node(int p_parent, int p_owner, int p_type, int p_name, int p_instance, int p_index) {
+int SceneState::add_node(int p_parent, int p_owner, int p_type, int p_name, int p_instance, int p_disabled, int p_index) {
 	NodeData nd;
 	nd.parent = p_parent;
 	nd.owner = p_owner;
 	nd.type = p_type;
 	nd.name = p_name;
 	nd.instance = p_instance;
+	nd.disabled = p_disabled;
 	nd.index = p_index;
 
 	nodes.push_back(nd);

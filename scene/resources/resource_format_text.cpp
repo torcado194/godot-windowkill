@@ -197,6 +197,7 @@ Ref<PackedScene> ResourceLoaderText::_parse_node_tag(VariantParser::ResourcePars
 			int type = -1;
 			int name = -1;
 			int instance = -1;
+			int disabled = -1;
 			int index = -1;
 			//int base_scene=-1;
 
@@ -249,6 +250,11 @@ Ref<PackedScene> ResourceLoaderText::_parse_node_tag(VariantParser::ResourcePars
 				instance = path_v | SceneState::FLAG_INSTANCE_IS_PLACEHOLDER;
 			}
 
+			if (next_tag.fields.has("disabled")) {
+				bool d = packed_scene->get_state()->add_value(next_tag.fields["disabled"]);
+				disabled = d ? 1 : -1;
+			}
+
 			if (next_tag.fields.has("owner")) {
 				owner = packed_scene->get_state()->add_node_path(next_tag.fields["owner"]);
 			} else {
@@ -261,7 +267,7 @@ Ref<PackedScene> ResourceLoaderText::_parse_node_tag(VariantParser::ResourcePars
 				index = next_tag.fields["index"];
 			}
 
-			int node_id = packed_scene->get_state()->add_node(parent, owner, type, name, instance, index);
+			int node_id = packed_scene->get_state()->add_node(parent, owner, type, name, instance, disabled, index);
 
 			if (next_tag.fields.has("groups")) {
 				Array groups = next_tag.fields["groups"];
@@ -2208,6 +2214,7 @@ Error ResourceFormatSaverTextInstance::save(const String &p_path, const Ref<Reso
 			NodePath owner = state->get_node_owner_path(i);
 			Ref<PackedScene> instance = state->get_node_instance(i);
 			String instance_placeholder = state->get_node_instance_placeholder(i);
+			bool disabled = state->get_node_disabled(i);
 			Vector<StringName> groups = state->get_node_groups(i);
 			Vector<String> deferred_node_paths = state->get_node_deferred_nodepath_properties(i);
 
@@ -2259,6 +2266,13 @@ Error ResourceFormatSaverTextInstance::save(const String &p_path, const Ref<Reso
 				String vars;
 				f->store_string(" instance=");
 				VariantWriter::write_to_string(instance, vars, _write_resources, this);
+				f->store_string(vars);
+			}
+
+			if (disabled) {
+				String vars;
+				f->store_string(" disabled=");
+				VariantWriter::write_to_string(disabled, vars, _write_resources, this);
 				f->store_string(vars);
 			}
 

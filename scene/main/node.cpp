@@ -2411,6 +2411,14 @@ bool Node::get_scene_instance_load_placeholder() const {
 	return data.use_placeholder;
 }
 
+void Node::set_scene_disabled(bool p_enable) {
+	data.disabled = p_enable;
+}
+
+bool Node::get_scene_disabled() const {
+	return data.disabled;
+}
+
 Node *Node::_duplicate(int p_flags, HashMap<const Node *, Node *> *r_duplimap) const {
 	ERR_THREAD_GUARD_V(nullptr);
 	Node *node = nullptr;

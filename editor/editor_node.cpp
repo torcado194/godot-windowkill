@@ -6256,6 +6256,7 @@ void EditorNode::reload_instances_with_path_in_edited_scenes(const String &p_ins
 
 				bool original_node_is_displayed_folded = original_node->is_displayed_folded();
 				bool original_node_scene_instance_load_placeholder = original_node->get_scene_instance_load_placeholder();
+				bool original_node_scene_disabled = original_node->get_scene_disabled();
 
 				// Update the name to match
 				instantiated_node->set_name(original_node->get_name());
@@ -6290,6 +6291,8 @@ void EditorNode::reload_instances_with_path_in_edited_scenes(const String &p_ins
 				// Restore the folded and placeholder state from the original node.
 				instantiated_node->set_display_folded(original_node_is_displayed_folded);
 				instantiated_node->set_scene_instance_load_placeholder(original_node_scene_instance_load_placeholder);
+
+				instantiated_node->set_scene_disabled(original_node_scene_disabled);
 
 				if (owner) {
 					Ref<SceneState> ss_inst = owner->get_scene_instance_state();
