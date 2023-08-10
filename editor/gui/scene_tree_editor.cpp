@@ -100,6 +100,20 @@ void SceneTreeEditor::_cell_button_pressed(Object *p_item, int p_column, int p_i
 			}
 		}
 		undo_redo->commit_action();
+	} else if (p_id == BUTTON_DISABLE) {
+		undo_redo->create_action(TTR("Toggle Disabled"));
+		_toggle_disabled(n);
+		List<Node *> selection = editor_selection->get_selected_node_list();
+		if (selection.size() > 1 && selection.find(n) != nullptr) {
+			for (Node *nv : selection) {
+				ERR_FAIL_COND(!nv);
+				if (nv == n) {
+					continue;
+				}
+				_toggle_disabled(nv);
+			}
+		}
+		undo_redo->commit_action();
 	} else if (p_id == BUTTON_LOCK) {
 		undo_redo->create_action(TTR("Unlock Node"));
 
@@ -183,6 +197,27 @@ void SceneTreeEditor::_toggle_visible(Node *p_node) {
 		undo_redo->add_do_method(p_node, "set_visible", !v);
 		undo_redo->add_undo_method(p_node, "set_visible", v);
 	}
+}
+
+void SceneTreeEditor::_toggle_disabled(Node *p_node) {
+	bool disabled = p_node->get_scene_disabled();
+	p_node->set_scene_disabled(!disabled);
+	_update_tree();
+	emit_signal("node_changed");
+
+	// EditorUndoRedoManager *undo_redo = EditorUndoRedoManager::get_singleton();
+	// undo_redo->add_do_method(p_node, "set_disabled", !v);
+	// undo_redo->add_undo_method(p_node, "set_disabled", v);
+
+	// undo_redo->create_action(TTR("Toggle Disabled"));
+	// undo_redo->add_do_method(p_node, "set_scene_disabled", !disabled);
+	// undo_redo->add_undo_method(p_node, "set_scene_disabled", disabled);
+
+	// undo_redo->add_do_method(this, "_update_tree");
+	// undo_redo->add_undo_method(this, "_update_tree");
+	// undo_redo->add_do_method(this, "emit_signal", "node_changed");
+	// undo_redo->add_undo_method(this, "emit_signal", "node_changed");
+	// undo_redo->commit_action();
 }
 
 void SceneTreeEditor::_add_nodes(Node *p_node, TreeItem *p_parent) {
@@ -276,6 +311,25 @@ void SceneTreeEditor::_add_nodes(Node *p_node, TreeItem *p_parent) {
 				break;
 			}
 			node = node->get_parent();
+		}
+	}
+
+	if (true) {
+		Node *node = p_node;
+		bool disabled = false;
+		while (node) {
+			if (node->get_scene_disabled()) {
+				disabled = true;
+				break;
+			}
+			node = node->get_parent();
+		}
+		if (disabled) {
+			item->set_custom_color(0, get_theme_color(SNAME("disabled_font_color"), SNAME("Editor")));
+			int idx = item->get_button_by_id(0, BUTTON_DISABLE);
+			if (idx >= 0) {
+				item->set_button_color(0, idx, Color(1, 1, 1, 0.6));
+			}
 		}
 	}
 
@@ -469,6 +523,14 @@ void SceneTreeEditor::_add_nodes(Node *p_node, TreeItem *p_parent) {
 			if (is_pinned) {
 				item->add_button(0, get_theme_icon(SNAME("Pin"), SNAME("EditorIcons")), BUTTON_PIN, false, TTR("AnimationPlayer is pinned.\nClick to unpin."));
 			}
+		}
+
+		if (p_node->get_scene_disabled()) {
+			item->add_button(0, get_theme_icon(SNAME("GuiDisableDisabled"), SNAME("EditorIcons")), BUTTON_DISABLE, false, TTR("Toggle Disabled"));
+			item->set_button_color(0, item->get_button_count(0) - 1, Color(1, 1, 1, 0.6));
+		} else {
+			item->add_button(0, get_theme_icon(SNAME("GuiDisableEnabled"), SNAME("EditorIcons")), BUTTON_DISABLE, false, TTR("Toggle Disabled"));
+			item->set_button_color(0, item->get_button_count(0) - 1, Color(1, 1, 1, 1));
 		}
 	}
 

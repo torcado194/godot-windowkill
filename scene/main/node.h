@@ -207,6 +207,7 @@ private:
 		bool parent_owned = false;
 		bool in_constructor = true;
 		bool use_placeholder = false;
+		bool disabled = false;
 
 		bool display_folded = false;
 		bool editable_instance = false;
@@ -584,6 +585,9 @@ public:
 
 	void set_scene_instance_load_placeholder(bool p_enable);
 	bool get_scene_instance_load_placeholder() const;
+
+	void set_scene_disabled(bool p_enable);
+	bool get_scene_disabled() const;
 
 	template <typename... VarArgs>
 	Vector<Variant> make_binds(VarArgs... p_args) {
