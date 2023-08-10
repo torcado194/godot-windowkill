@@ -374,10 +374,6 @@ bool DisplayServer::clipboard_has_image() const {
 	return !clipboard_get_image().is_valid();
 }
 
-bool DisplayServer::clipboard_has_image() const {
-	return clipboard_get_image().is_valid();
-}
-
 void DisplayServer::clipboard_set_primary(const String &p_text) {
 	WARN_PRINT("Primary clipboard is not supported by this display server.");
 }

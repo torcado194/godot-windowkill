@@ -16,12 +16,6 @@
 				Returns the user's clipboard as an image if possible.
 			</description>
 		</method>
-		<method name="clipboard_get_image" qualifiers="const">
-			<return type="Image" />
-			<description>
-				Returns the user's clipboard as an image if possible.
-			</description>
-		</method>
 		<method name="clipboard_get_primary" qualifiers="const">
 			<return type="String" />
 			<description>
