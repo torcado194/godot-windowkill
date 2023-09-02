@@ -598,9 +598,10 @@ void main() {
 
 		if (normal_used) {
 			vec3 light_vec = normalize(mix(vec3(direction, 0.0), vec3(0, 0, 1), light_array.data[light_base].height));
-			light_color.rgb = light_normal_compute(light_vec, normal, base_color.rgb, light_color.rgb, specular_shininess, specular_shininess_used);
+			//light_color.rgb = light_normal_compute(light_vec, normal, base_color.rgb, light_color.rgb, specular_shininess, specular_shininess_used);
+			light_color.rgb = light_normal_compute(light_vec, normal, vec3(1, 1, 1), light_color.rgb, specular_shininess, specular_shininess_used);
 		} else {
-			light_color.rgb *= base_color.rgb;
+			//light_color.rgb *= base_color.rgb;
 		}
 #endif
 
@@ -654,9 +655,10 @@ void main() {
 			vec3 pos = light_vertex;
 			vec3 light_vec = normalize(light_pos - pos);
 
-			light_color.rgb = light_normal_compute(light_vec, normal, base_color.rgb, light_color.rgb, specular_shininess, specular_shininess_used);
+			//light_color.rgb = light_normal_compute(light_vec, normal, base_color.rgb, light_color.rgb, specular_shininess, specular_shininess_used);
+			light_color.rgb = light_normal_compute(light_vec, normal, vec3(1, 1, 1), light_color.rgb, specular_shininess, specular_shininess_used);
 		} else {
-			light_color.rgb *= base_color.rgb;
+			//light_color.rgb *= base_color.rgb;
 		}
 #endif
 		if (any(lessThan(tex_uv, vec2(0.0, 0.0))) || any(greaterThanEqual(tex_uv, vec2(1.0, 1.0)))) {

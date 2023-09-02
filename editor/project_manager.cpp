@@ -1995,7 +1995,7 @@ void ProjectManager::_notification(int p_what) {
 			if (_project_list->get_project_count() >= 1) {
 				// Focus on the search box immediately to allow the user
 				// to search without having to reach for their mouse
-				search_box->grab_focus();
+				// search_box->grab_focus();
 			}
 #endif
 
@@ -2122,7 +2122,7 @@ void ProjectManager::shortcut_input(const Ref<InputEvent> &p_ev) {
 				}
 
 			} break;
-			case Key::UP: {
+			case Key::W: {
 				if (k->is_shift_pressed()) {
 					break;
 				}
@@ -2136,7 +2136,7 @@ void ProjectManager::shortcut_input(const Ref<InputEvent> &p_ev) {
 
 				break;
 			}
-			case Key::DOWN: {
+			case Key::S: {
 				if (k->is_shift_pressed()) {
 					break;
 				}

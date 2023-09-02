@@ -181,6 +181,11 @@ Vector2 GodotPhysicsDirectBodyState2D::get_contact_local_normal(int p_contact_id
 	return body->contacts[p_contact_idx].local_normal;
 }
 
+real_t GodotPhysicsDirectBodyState2D::get_contact_depth(int p_contact_idx) const {
+	ERR_FAIL_INDEX_V(p_contact_idx, body->contact_count, 0.0);
+	return body->contacts[p_contact_idx].depth;
+}
+
 int GodotPhysicsDirectBodyState2D::get_contact_local_shape(int p_contact_idx) const {
 	ERR_FAIL_INDEX_V(p_contact_idx, body->contact_count, -1);
 	return body->contacts[p_contact_idx].local_shape;
