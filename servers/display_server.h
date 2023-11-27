@@ -341,6 +341,7 @@ public:
 		WINDOW_FLAG_POPUP,
 		WINDOW_FLAG_EXTEND_TO_TITLE,
 		WINDOW_FLAG_MOUSE_PASSTHROUGH,
+		WINDOW_FLAG_MINIMIZE_DISABLED,
 		WINDOW_FLAG_MAX,
 	};
 
@@ -354,7 +355,13 @@ public:
 		WINDOW_FLAG_POPUP_BIT = (1 << WINDOW_FLAG_POPUP),
 		WINDOW_FLAG_EXTEND_TO_TITLE_BIT = (1 << WINDOW_FLAG_EXTEND_TO_TITLE),
 		WINDOW_FLAG_MOUSE_PASSTHROUGH_BIT = (1 << WINDOW_FLAG_MOUSE_PASSTHROUGH),
+		WINDOW_FLAG_MINIMIZE_DISABLED_BIT = (1 << WINDOW_FLAG_MINIMIZE_DISABLED),
 	};
+
+	
+	virtual bool get_key_state(Key p_key) { return false; };
+	virtual bool get_mouse_state(int button = 0) { return false; };
+	virtual bool window_get_user_moving(WindowID p_window) { return false; };
 
 	virtual WindowID create_sub_window(WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Rect2i &p_rect = Rect2i());
 	virtual void show_window(WindowID p_id);
@@ -409,6 +416,8 @@ public:
 	virtual void window_set_min_size(const Size2i p_size, WindowID p_window = MAIN_WINDOW_ID) = 0;
 	virtual Size2i window_get_min_size(WindowID p_window = MAIN_WINDOW_ID) const = 0;
 
+	virtual void window_set_rect(const Rect2i p_rect, WindowID p_window = MAIN_WINDOW_ID) {};
+	
 	virtual void window_set_size(const Size2i p_size, WindowID p_window = MAIN_WINDOW_ID) = 0;
 	virtual Size2i window_get_size(WindowID p_window = MAIN_WINDOW_ID) const = 0;
 	virtual Size2i window_get_size_with_decorations(WindowID p_window = MAIN_WINDOW_ID) const = 0;

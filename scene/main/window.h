@@ -61,6 +61,7 @@ public:
 		FLAG_POPUP = DisplayServer::WINDOW_FLAG_POPUP,
 		FLAG_EXTEND_TO_TITLE = DisplayServer::WINDOW_FLAG_EXTEND_TO_TITLE,
 		FLAG_MOUSE_PASSTHROUGH = DisplayServer::WINDOW_FLAG_MOUSE_PASSTHROUGH,
+		FLAG_MINIMIZE_DISABLED = DisplayServer::WINDOW_FLAG_MINIMIZE_DISABLED,
 		FLAG_MAX = DisplayServer::WINDOW_FLAG_MAX,
 	};
 
@@ -112,6 +113,7 @@ private:
 	mutable int current_screen = 0;
 	mutable Vector2i position;
 	mutable Size2i size = Size2i(DEFAULT_WINDOW_SIZE, DEFAULT_WINDOW_SIZE);
+	mutable Rect2i rect = Rect2i(0, 0, DEFAULT_WINDOW_SIZE, DEFAULT_WINDOW_SIZE);
 	mutable Size2i min_size;
 	mutable Size2i max_size;
 	mutable Vector<Vector2> mpath;
@@ -245,6 +247,8 @@ public:
 
 	void set_size(const Size2i &p_size);
 	Size2i get_size() const;
+	void set_rect(const Rect2i &p_rect);
+	Rect2i get_rect() const;
 	void reset_size();
 
 	Point2i get_position_with_decorations() const;

@@ -216,6 +216,7 @@ public:
 	void canvas_item_set_clip(RID p_item, bool p_clip);
 	void canvas_item_set_distance_field_mode(RID p_item, bool p_enable);
 	void canvas_item_set_custom_rect(RID p_item, bool p_custom_rect, const Rect2 &p_rect = Rect2());
+	Rect2 canvas_item_get_rect(RID p_item);
 	void canvas_item_set_modulate(RID p_item, const Color &p_color);
 	void canvas_item_set_self_modulate(RID p_item, const Color &p_color);
 

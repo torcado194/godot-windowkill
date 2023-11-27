@@ -327,6 +327,7 @@ void Window::set_position(const Point2i &p_position) {
 	ERR_MAIN_THREAD_GUARD;
 
 	position = p_position;
+	rect.position = position;
 
 	if (embedder) {
 		embedder->_sub_window_update(this);
@@ -346,12 +347,30 @@ void Window::set_size(const Size2i &p_size) {
 	ERR_MAIN_THREAD_GUARD;
 
 	size = p_size;
+	rect.size = size;
 	_update_window_size();
 }
 
 Size2i Window::get_size() const {
 	ERR_READ_THREAD_GUARD_V(Size2i());
 	return size;
+}
+
+void Window::set_rect(const Rect2i &p_rect) {
+	ERR_MAIN_THREAD_GUARD;
+
+	position = p_rect.position;
+	size = p_rect.size;
+	rect = p_rect;
+	if (window_id != DisplayServer::INVALID_WINDOW_ID) {
+		DisplayServer::get_singleton()->window_set_rect(p_rect, window_id);
+	}
+	_update_window_size();
+}
+
+Rect2i Window::get_rect() const {
+	ERR_READ_THREAD_GUARD_V(Rect2i());
+	return Rect2i(position, size);
 }
 
 void Window::reset_size() {
@@ -2569,6 +2588,8 @@ void Window::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_size", "size"), &Window::set_size);
 	ClassDB::bind_method(D_METHOD("get_size"), &Window::get_size);
+	ClassDB::bind_method(D_METHOD("set_rect", "rect"), &Window::set_rect);
+	ClassDB::bind_method(D_METHOD("get_rect"), &Window::get_rect);
 	ClassDB::bind_method(D_METHOD("reset_size"), &Window::reset_size);
 
 	ClassDB::bind_method(D_METHOD("get_position_with_decorations"), &Window::get_position_with_decorations);
@@ -2721,6 +2742,7 @@ void Window::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "initial_position", PROPERTY_HINT_ENUM, "Absolute,Center of Primary Screen,Center of Main Window Screen,Center of Other Screen,Center of Screen With Mouse Pointer,Center of Screen With Keyboard Focus"), "set_initial_position", "get_initial_position");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "position", PROPERTY_HINT_NONE, "suffix:px"), "set_position", "get_position");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "size", PROPERTY_HINT_NONE, "suffix:px"), "set_size", "get_size");
+	ADD_PROPERTY(PropertyInfo(Variant::RECT2I, "rect", PROPERTY_HINT_NONE, "suffix:px"), "set_rect", "get_rect");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "current_screen", PROPERTY_HINT_RANGE, "0,64,1,or_greater"), "set_current_screen", "get_current_screen");
 
 	ADD_PROPERTY(PropertyInfo(Variant::PACKED_VECTOR2_ARRAY, "mouse_passthrough_polygon"), "set_mouse_passthrough_polygon", "get_mouse_passthrough_polygon");
@@ -2731,6 +2753,7 @@ void Window::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "transient"), "set_transient", "is_transient");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "exclusive"), "set_exclusive", "is_exclusive");
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "unresizable"), "set_flag", "get_flag", FLAG_RESIZE_DISABLED);
+	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "unminimizable"), "set_flag", "get_flag", FLAG_MINIMIZE_DISABLED);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "borderless"), "set_flag", "get_flag", FLAG_BORDERLESS);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "always_on_top"), "set_flag", "get_flag", FLAG_ALWAYS_ON_TOP);
 	ADD_PROPERTYI(PropertyInfo(Variant::BOOL, "transparent"), "set_flag", "get_flag", FLAG_TRANSPARENT);

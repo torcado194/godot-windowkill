@@ -507,6 +507,29 @@ void StyleBoxFlat::draw(RID p_canvas_item, const Rect2 &p_rect) const {
 			}
 		}
 
+
+
+		// if (draw_shadow) {
+		// 	Rect2 shadow_inner_rect = style_rect;
+		// 	shadow_inner_rect.position += shadow_offset;
+
+		// 	Rect2 shadow_rect = style_rect.grow(-shadow_size);
+		// 	// Rect2 shadow_rect = style_rect;
+		// 	shadow_rect.position += shadow_offset;
+
+		// 	Color shadow_color_transparent = Color(shadow_color.r, shadow_color.g, shadow_color.b, 0);
+
+		// 	draw_rounded_rectangle(verts, indices, colors, shadow_inner_rect, adapted_corner,
+		// 			shadow_rect, shadow_inner_rect, shadow_color, bg_color, corner_detail, skew);
+
+		// 	// if (draw_center) {
+		// 	// 	draw_rounded_rectangle(verts, indices, colors, shadow_inner_rect, adapted_corner,
+		// 	// 			shadow_inner_rect, shadow_inner_rect, shadow_color, shadow_color, corner_detail, skew, true);
+		// 	// }
+		// }
+
+
+
 		if (draw_border) {
 			// Inner border recct, fully colored side of antialiasing gradient (base inner rect enlarged by AA size)
 			Rect2 inner_rect_aa_colored = infill_rect.grow_individual(aa_border_width_half[SIDE_LEFT], aa_border_width_half[SIDE_TOP],

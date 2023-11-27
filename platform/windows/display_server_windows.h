@@ -367,6 +367,7 @@ class DisplayServerWindows : public DisplayServer {
 		bool multiwindow_fs = false;
 		bool borderless = false;
 		bool resizable = true;
+		bool minimizable = true;
 		bool window_focused = false;
 		bool was_maximized = false;
 		bool always_on_top = false;
@@ -383,6 +384,8 @@ class DisplayServerWindows : public DisplayServer {
 		// Timers.
 		uint32_t move_timer_id = 0U;
 		uint32_t focus_timer_id = 0U;
+		bool timer_active = false;
+		bool user_moving = false;
 
 		HANDLE wtctx;
 		LOGCONTEXTW wtlc;
@@ -445,7 +448,7 @@ class DisplayServerWindows : public DisplayServer {
 	WNDPROC user_proc = nullptr;
 
 	void _send_window_event(const WindowData &wd, WindowEvent p_event);
-	void _get_window_style(bool p_main_window, bool p_fullscreen, bool p_multiwindow_fs, bool p_borderless, bool p_resizable, bool p_maximized, bool p_no_activate_focus, DWORD &r_style, DWORD &r_style_ex);
+	void _get_window_style(bool p_main_window, bool p_fullscreen, bool p_multiwindow_fs, bool p_borderless, bool p_resizable, bool p_minimizable, bool p_maximized, bool p_no_activate_focus, DWORD &r_style, DWORD &r_style_ex);
 
 	MouseMode mouse_mode;
 	int restore_mouse_trails = 0;
@@ -491,6 +494,10 @@ class DisplayServerWindows : public DisplayServer {
 public:
 	LRESULT WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT MouseProc(int code, WPARAM wParam, LPARAM lParam);
+
+	virtual bool get_key_state(Key p_key) override;
+	virtual bool get_mouse_state(int button = 0) override;
+	virtual bool window_get_user_moving(WindowID p_window) override;
 
 	void popup_open(WindowID p_window);
 	void popup_close(WindowID p_window);
@@ -584,6 +591,8 @@ public:
 
 	virtual void window_set_min_size(const Size2i p_size, WindowID p_window = MAIN_WINDOW_ID) override;
 	virtual Size2i window_get_min_size(WindowID p_window = MAIN_WINDOW_ID) const override;
+
+	virtual void window_set_rect(const Rect2i p_rect, WindowID p_window = MAIN_WINDOW_ID) override;
 
 	virtual void window_set_size(const Size2i p_size, WindowID p_window = MAIN_WINDOW_ID) override;
 	virtual Size2i window_get_size(WindowID p_window = MAIN_WINDOW_ID) const override;

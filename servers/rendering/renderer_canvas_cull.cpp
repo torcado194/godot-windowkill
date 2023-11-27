@@ -553,6 +553,13 @@ void RendererCanvasCull::canvas_item_set_custom_rect(RID p_item, bool p_custom_r
 	canvas_item->rect = p_rect;
 }
 
+Rect2 RendererCanvasCull::canvas_item_get_rect(RID p_item) {
+	Item *canvas_item = canvas_item_owner.get_or_null(p_item);
+	ERR_FAIL_COND_V(!canvas_item, Rect2());
+
+	return canvas_item->get_rect();
+}
+
 void RendererCanvasCull::canvas_item_set_modulate(RID p_item, const Color &p_color) {
 	Item *canvas_item = canvas_item_owner.get_or_null(p_item);
 	ERR_FAIL_COND(!canvas_item);

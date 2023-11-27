@@ -6721,26 +6721,26 @@ void TextEdit::_copy_internal(int p_caret) {
 		return;
 	}
 
-	StringBuilder clipboard;
-	Vector<int> caret_edit_order = get_caret_index_edit_order();
-	for (int i = caret_edit_order.size() - 1; i >= 0; i--) {
-		int caret_idx = caret_edit_order[i];
-		if (p_caret != -1 && p_caret != caret_idx) {
-			continue;
-		}
+	// StringBuilder clipboard;
+	// Vector<int> caret_edit_order = get_caret_index_edit_order();
+	// for (int i = caret_edit_order.size() - 1; i >= 0; i--) {
+	// 	int caret_idx = caret_edit_order[i];
+	// 	if (p_caret != -1 && p_caret != caret_idx) {
+	// 		continue;
+	// 	}
 
-		int cl = get_caret_line(caret_idx);
-		if (text[cl].length() != 0) {
-			clipboard += _base_get_text(cl, 0, cl, text[cl].length());
-			if (p_caret == -1 && i != 0) {
-				clipboard += "\n";
-			}
-		}
-	}
+	// 	int cl = get_caret_line(caret_idx);
+	// 	if (text[cl].length() != 0) {
+	// 		clipboard += _base_get_text(cl, 0, cl, text[cl].length());
+	// 		if (p_caret == -1 && i != 0) {
+	// 			clipboard += "\n";
+	// 		}
+	// 	}
+	// }
 
-	String clipboard_string = clipboard.as_string();
-	DisplayServer::get_singleton()->clipboard_set_text(clipboard_string);
-	cut_copy_line = clipboard_string;
+	// String clipboard_string = clipboard.as_string();
+	// DisplayServer::get_singleton()->clipboard_set_text(clipboard_string);
+	// cut_copy_line = clipboard_string;
 }
 
 void TextEdit::_paste_internal(int p_caret) {

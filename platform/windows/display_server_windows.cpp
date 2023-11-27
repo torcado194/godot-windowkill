@@ -977,6 +977,9 @@ DisplayServer::WindowID DisplayServerWindows::create_sub_window(WindowMode p_mod
 	if (p_flags & WINDOW_FLAG_RESIZE_DISABLED_BIT) {
 		wd.resizable = false;
 	}
+	if (p_flags & WINDOW_FLAG_MINIMIZE_DISABLED_BIT) {
+		wd.minimizable = false;
+	}
 	if (p_flags & WINDOW_FLAG_BORDERLESS_BIT) {
 		wd.borderless = true;
 	}
@@ -1323,7 +1326,7 @@ void DisplayServerWindows::window_set_position(const Point2i &p_position, Window
 	const DWORD exStyle = GetWindowLongPtr(wd.hWnd, GWL_EXSTYLE);
 
 	AdjustWindowRectEx(&rc, style, false, exStyle);
-	MoveWindow(wd.hWnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, TRUE);
+	MoveWindow(wd.hWnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, FALSE);
 
 	wd.last_pos = p_position;
 	_update_real_mouse_position(p_window);
@@ -1427,6 +1430,62 @@ Size2i DisplayServerWindows::window_get_min_size(WindowID p_window) const {
 	return wd.min_size;
 }
 
+void DisplayServerWindows::window_set_rect(const Rect2i p_rect, WindowID p_window) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND(!windows.has(p_window));
+	WindowData &wd = windows[p_window];
+
+	if (wd.fullscreen || wd.maximized) {
+		return;
+	}
+
+	int w = p_rect.size.width;
+	int h = p_rect.size.height;
+
+	wd.width = w;
+	wd.height = h;
+
+	Point2i offset = _get_screens_origin();
+
+	RECT rc;
+	rc.left = p_rect.position.x + offset.x;
+	rc.right = p_rect.position.x + wd.width + offset.x;
+	rc.bottom = p_rect.position.y + wd.height + offset.y;
+	rc.top = p_rect.position.y + offset.y;
+
+	const DWORD style = GetWindowLongPtr(wd.hWnd, GWL_STYLE);
+	const DWORD exStyle = GetWindowLongPtr(wd.hWnd, GWL_EXSTYLE);
+
+
+#if defined(VULKAN_ENABLED)
+	// if (context_vulkan) {
+	// 	context_vulkan->window_resize(p_window, w, h);
+	// }
+#endif
+#if defined(GLES3_ENABLED)
+	// if (gl_manager) {
+	// 	gl_manager->window_resize(p_window, w, h);
+	// }
+#endif
+
+	// RECT rect;
+	// GetWindowRect(wd.hWnd, &rect);
+
+	// if (!wd.borderless) {
+	// 	RECT crect;
+	// 	GetClientRect(wd.hWnd, &crect);
+
+	// 	w += (rect.right - rect.left) - (crect.right - crect.left);
+	// 	h += (rect.bottom - rect.top) - (crect.bottom - crect.top);
+	// }
+
+	AdjustWindowRectEx(&rc, style, false, exStyle);
+	MoveWindow(wd.hWnd, rc.left, rc.top, rc.right-rc.left, rc.bottom-rc.top, FALSE);
+	wd.last_pos = p_rect.position;
+	_update_real_mouse_position(p_window);
+}
+
 void DisplayServerWindows::window_set_size(const Size2i p_size, WindowID p_window) {
 	_THREAD_SAFE_METHOD_
 
@@ -1444,14 +1503,14 @@ void DisplayServerWindows::window_set_size(const Size2i p_size, WindowID p_windo
 	wd.height = h;
 
 #if defined(VULKAN_ENABLED)
-	if (context_vulkan) {
-		context_vulkan->window_resize(p_window, w, h);
-	}
+	// if (context_vulkan) {
+	// 	context_vulkan->window_resize(p_window, w, h);
+	// }
 #endif
 #if defined(GLES3_ENABLED)
-	if (gl_manager) {
-		gl_manager->window_resize(p_window, w, h);
-	}
+	// if (gl_manager) {
+	// 	gl_manager->window_resize(p_window, w, h);
+	// }
 #endif
 
 	RECT rect;
@@ -1465,7 +1524,7 @@ void DisplayServerWindows::window_set_size(const Size2i p_size, WindowID p_windo
 		h += (rect.bottom - rect.top) - (crect.bottom - crect.top);
 	}
 
-	MoveWindow(wd.hWnd, rect.left, rect.top, w, h, TRUE);
+	MoveWindow(wd.hWnd, rect.left, rect.top, w, h, FALSE);
 }
 
 Size2i DisplayServerWindows::window_get_size(WindowID p_window) const {
@@ -1499,7 +1558,7 @@ Size2i DisplayServerWindows::window_get_size_with_decorations(WindowID p_window)
 	return Size2();
 }
 
-void DisplayServerWindows::_get_window_style(bool p_main_window, bool p_fullscreen, bool p_multiwindow_fs, bool p_borderless, bool p_resizable, bool p_maximized, bool p_no_activate_focus, DWORD &r_style, DWORD &r_style_ex) {
+void DisplayServerWindows::_get_window_style(bool p_main_window, bool p_fullscreen, bool p_multiwindow_fs, bool p_borderless, bool p_resizable, bool p_minimizable, bool p_maximized, bool p_no_activate_focus, DWORD &r_style, DWORD &r_style_ex) {
 	// Windows docs for window styles:
 	// https://docs.microsoft.com/en-us/windows/win32/winmsg/window-styles
 	// https://docs.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles
@@ -1523,8 +1582,10 @@ void DisplayServerWindows::_get_window_style(bool p_main_window, bool p_fullscre
 			} else {
 				r_style = WS_OVERLAPPEDWINDOW;
 			}
-		} else {
+		} else if (p_minimizable) {
 			r_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+		} else {
+			r_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
 		}
 	}
 
@@ -1549,7 +1610,7 @@ void DisplayServerWindows::_update_window_style(WindowID p_window, bool p_repain
 	DWORD style = 0;
 	DWORD style_ex = 0;
 
-	_get_window_style(p_window == MAIN_WINDOW_ID, wd.fullscreen, wd.multiwindow_fs, wd.borderless, wd.resizable, wd.maximized, wd.no_focus || wd.is_popup, style, style_ex);
+	_get_window_style(p_window == MAIN_WINDOW_ID, wd.fullscreen, wd.multiwindow_fs, wd.borderless, wd.resizable, wd.minimizable, wd.maximized, wd.no_focus || wd.is_popup, style, style_ex);
 
 	SetWindowLongPtr(wd.hWnd, GWL_STYLE, style);
 	SetWindowLongPtr(wd.hWnd, GWL_EXSTYLE, style_ex);
@@ -3604,6 +3665,10 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 		} break;
 
+	/* 	case WM_ENTERSIZEMOVE: {
+			WARN_PRINT("MOVING");
+		} break; */
+
 		case WM_WINDOWPOSCHANGED: {
 			Rect2i window_client_rect;
 			Rect2i window_rect;
@@ -3680,6 +3745,14 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 				}
 			}
 
+			//TORC FIX for blocked rendering during user drag
+			if(windows[window_id].timer_active){
+				_process_key_events();
+				if (!Main::is_iterating()) {
+					Main::iteration();
+				}
+			}
+
 			// Return here to prevent WM_MOVE and WM_SIZE from being sent
 			// See: https://docs.microsoft.com/en-us/windows/win32/winmsg/wm-windowposchanged#remarks
 			return 0;
@@ -3689,9 +3762,13 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		case WM_ENTERSIZEMOVE: {
 			Input::get_singleton()->release_pressed_events();
 			windows[window_id].move_timer_id = SetTimer(windows[window_id].hWnd, 1, USER_TIMER_MINIMUM, (TIMERPROC) nullptr);
+			windows[window_id].timer_active = true;
+			windows[window_id].user_moving = true;
 		} break;
 		case WM_EXITSIZEMOVE: {
 			KillTimer(windows[window_id].hWnd, windows[window_id].move_timer_id);
+			windows[window_id].timer_active = false;
+			windows[window_id].user_moving = false;
 		} break;
 		case WM_TIMER: {
 			if (wParam == windows[window_id].move_timer_id) {
@@ -3933,6 +4010,43 @@ void DisplayServerWindows::_process_activate_event(WindowID p_window_id, WPARAM 
 	}
 }
 
+bool DisplayServerWindows::get_key_state(Key p_key) {
+	if(p_key == Key::SHIFT){
+		return GetAsyncKeyState(VK_SHIFT) < 0;
+	}
+	if(p_key == Key::CTRL){
+		return GetAsyncKeyState(VK_CONTROL) < 0;
+	}
+	if(p_key == Key::ALT){
+		return GetAsyncKeyState(VK_MENU) < 0;
+	}
+	Key keycode_no_mod = (Key)(p_key & KeyModifierMask::CODE_MASK);
+	UINT vk = KeyMappingWindows::get_virtual_key(keycode_no_mod);
+	return GetAsyncKeyState(vk) < 0;
+}
+
+bool DisplayServerWindows::get_mouse_state(int button) {
+	if(button == 0){
+		return GetAsyncKeyState(VK_LBUTTON) < 0;
+	}
+	if(button == 1){
+		return GetAsyncKeyState(VK_MBUTTON) < 0;
+	}
+	if(button == 2){
+		return GetAsyncKeyState(VK_RBUTTON) < 0;
+	}
+	return false;
+}
+
+bool DisplayServerWindows::window_get_user_moving(WindowID p_window) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND_V(!windows.has(p_window), WINDOW_MODE_WINDOWED);
+	const WindowData &wd = windows[p_window];
+
+	return wd.user_moving;
+}
+
 void DisplayServerWindows::_process_key_events() {
 	for (int i = 0; i < key_event_pos; i++) {
 		KeyEvent &ke = key_event_buffer[i];
@@ -4127,7 +4241,7 @@ DisplayServer::WindowID DisplayServerWindows::_create_window(WindowMode p_mode, 
 	DWORD dwExStyle;
 	DWORD dwStyle;
 
-	_get_window_style(window_id_counter == MAIN_WINDOW_ID, (p_mode == WINDOW_MODE_FULLSCREEN || p_mode == WINDOW_MODE_EXCLUSIVE_FULLSCREEN), p_mode != WINDOW_MODE_EXCLUSIVE_FULLSCREEN, p_flags & WINDOW_FLAG_BORDERLESS_BIT, !(p_flags & WINDOW_FLAG_RESIZE_DISABLED_BIT), p_mode == WINDOW_MODE_MAXIMIZED, (p_flags & WINDOW_FLAG_NO_FOCUS_BIT) | (p_flags & WINDOW_FLAG_POPUP), dwStyle, dwExStyle);
+	_get_window_style(window_id_counter == MAIN_WINDOW_ID, (p_mode == WINDOW_MODE_FULLSCREEN || p_mode == WINDOW_MODE_EXCLUSIVE_FULLSCREEN), p_mode != WINDOW_MODE_EXCLUSIVE_FULLSCREEN, p_flags & WINDOW_FLAG_BORDERLESS_BIT, !(p_flags & WINDOW_FLAG_RESIZE_DISABLED_BIT), !(p_flags & WINDOW_FLAG_MINIMIZE_DISABLED_BIT), p_mode == WINDOW_MODE_MAXIMIZED, (p_flags & WINDOW_FLAG_NO_FOCUS_BIT) | (p_flags & WINDOW_FLAG_POPUP), dwStyle, dwExStyle);
 
 	RECT WindowRect;
 

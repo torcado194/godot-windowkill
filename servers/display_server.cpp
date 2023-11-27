@@ -636,6 +636,10 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("tts_get_voices"), &DisplayServer::tts_get_voices);
 	ClassDB::bind_method(D_METHOD("tts_get_voices_for_language", "language"), &DisplayServer::tts_get_voices_for_language);
 
+	ClassDB::bind_method(D_METHOD("get_key_state"), &DisplayServer::get_key_state);
+	ClassDB::bind_method(D_METHOD("get_mouse_state"), &DisplayServer::get_mouse_state);
+	ClassDB::bind_method(D_METHOD("window_get_user_moving"), &DisplayServer::window_get_user_moving);
+
 	ClassDB::bind_method(D_METHOD("tts_speak", "text", "voice", "volume", "pitch", "rate", "utterance_id", "interrupt"), &DisplayServer::tts_speak, DEFVAL(50), DEFVAL(1.f), DEFVAL(1.f), DEFVAL(0), DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("tts_pause"), &DisplayServer::tts_pause);
 	ClassDB::bind_method(D_METHOD("tts_resume"), &DisplayServer::tts_resume);
