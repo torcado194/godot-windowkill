@@ -968,12 +968,12 @@ void DisplayServerWeb::_update_clipboard_callback(const String &p_text) {
 
 void DisplayServerWeb::clipboard_set_text(const String &p_text) {
 	clipboard = p_text;
-	int err = godot_js_display_clipboard_set_text(p_text.utf8().get_data());
+	int err = godot_js_display_clipboard_set(p_text.utf8().get_data());
 	ERR_FAIL_COND_MSG(err, "Clipboard API is not supported.");
 }
 
-String DisplayServerWeb::clipboard_get_text() const {
-	godot_js_display_clipboard_get_text(update_clipboard_callback);
+String DisplayServerWeb::clipboard_get() const {
+	godot_js_display_clipboard_get(update_clipboard_callback);
 	return clipboard;
 }
 
