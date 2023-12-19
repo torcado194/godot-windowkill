@@ -5483,8 +5483,8 @@ void RichTextLabel::deselect() {
 void RichTextLabel::selection_copy() {
 	String txt = get_selected_text();
 
-	if (!text.is_empty()) {
-		DisplayServer::get_singleton()->clipboard_set_text(text);
+	if (!txt.is_empty()) {
+		DisplayServer::get_singleton()->clipboard_set(txt);
 	}
 }
 

@@ -132,29 +132,29 @@ void DisplayServerAndroid::clipboard_set(const String &p_text) {
 	if (godot_java->has_set_clipboard()) {
 		godot_java->set_clipboard(p_text);
 	} else {
-		DisplayServer::clipboard_set_text(p_text);
+		DisplayServer::clipboard_set(p_text);
 	}
 }
 
-String DisplayServerAndroid::clipboard_get_text() const {
+String DisplayServerAndroid::clipboard_get() const {
 	GodotJavaWrapper *godot_java = OS_Android::get_singleton()->get_godot_java();
 	ERR_FAIL_NULL_V(godot_java, String());
 
 	if (godot_java->has_get_clipboard()) {
 		return godot_java->get_clipboard();
 	} else {
-		return DisplayServer::clipboard_get_text();
+		return DisplayServer::clipboard_get();
 	}
 }
 
-bool DisplayServerAndroid::clipboard_has_text() const {
+bool DisplayServerAndroid::clipboard_has() const {
 	GodotJavaWrapper *godot_java = OS_Android::get_singleton()->get_godot_java();
 	ERR_FAIL_NULL_V(godot_java, false);
 
 	if (godot_java->has_has_clipboard()) {
 		return godot_java->has_clipboard();
 	} else {
-		return DisplayServer::clipboard_has_text();
+		return DisplayServer::clipboard_has();
 	}
 }
 

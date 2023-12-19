@@ -207,7 +207,7 @@ void EditorLog::_copy_request() {
 	}
 
 	if (!text.is_empty()) {
-		DisplayServer::get_singleton()->clipboard_set_text(text);
+		DisplayServer::get_singleton()->clipboard_set(text);
 	}
 }
 
