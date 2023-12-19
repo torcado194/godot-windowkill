@@ -450,6 +450,23 @@ class DisplayServerWindows : public DisplayServer {
 	void _send_window_event(const WindowData &wd, WindowEvent p_event);
 	void _get_window_style(bool p_main_window, bool p_fullscreen, bool p_multiwindow_fs, bool p_borderless, bool p_resizable, bool p_minimizable, bool p_maximized, bool p_no_activate_focus, DWORD &r_style, DWORD &r_style_ex);
 
+	
+	struct CursorData {
+		HANDLE handle;
+		Point2 pos;
+		int lbutton;
+		int mbutton;
+		int rbutton;
+	};
+	RBMap<CursorID, CursorData> cust_cursors;
+	HANDLE mainCursor = nullptr;
+
+	struct KeyboardData {
+		HANDLE handle;
+		HashSet<int> keys;
+	};
+	RBMap<KeyboardID, KeyboardData> cust_keyboards;
+
 	MouseMode mouse_mode;
 	int restore_mouse_trails = 0;
 	bool alt_mem = false;
@@ -459,6 +476,7 @@ class DisplayServerWindows : public DisplayServer {
 	bool meta_mem = false;
 	BitField<MouseButtonMask> last_button_state;
 	bool use_raw_input = false;
+	WindowID keep_registered = -1;
 	bool drop_events = false;
 	bool in_dispatch_input_event = false;
 
@@ -601,6 +619,9 @@ public:
 	virtual void window_set_mode(WindowMode p_mode, WindowID p_window = MAIN_WINDOW_ID) override;
 	virtual WindowMode window_get_mode(WindowID p_window = MAIN_WINDOW_ID) const override;
 
+	virtual void window_set_topmost(WindowID p_window = MAIN_WINDOW_ID) override;
+	virtual void register_input_window(WindowID p_window = MAIN_WINDOW_ID) override;
+
 	virtual bool window_is_maximize_allowed(WindowID p_window = MAIN_WINDOW_ID) const override;
 
 	virtual void window_set_flag(WindowFlags p_flag, bool p_enabled, WindowID p_window = MAIN_WINDOW_ID) override;
@@ -626,6 +647,15 @@ public:
 	virtual void cursor_set_shape(CursorShape p_shape) override;
 	virtual CursorShape cursor_get_shape() const override;
 	virtual void cursor_set_custom_image(const Ref<Resource> &p_cursor, CursorShape p_shape = CURSOR_ARROW, const Vector2 &p_hotspot = Vector2()) override;
+
+	virtual int multi_cursor_get_count() override;
+	virtual Vector2 multi_cursor_get_position(CursorID p_cursor = 0) override;
+	virtual void multi_cursor_set_position(CursorID p_cursor, Vector2 p_position) override;
+	virtual void multi_cursor_event(CursorID p_cursor, int flags) override;
+	virtual bool multi_cursor_get_state(CursorID p_cursor, int button) override;
+	virtual int multi_keyboard_get_count() override;
+	virtual bool multi_keyboard_get_state(KeyboardID p_keyboard, Key key) override;
+	virtual TypedArray<int> multi_keyboard_get_keys(KeyboardID p_keyboard) override;
 
 	virtual bool get_swap_cancel_ok() override;
 

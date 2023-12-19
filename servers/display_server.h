@@ -234,6 +234,7 @@ public:
 		MOUSE_MODE_CAPTURED,
 		MOUSE_MODE_CONFINED,
 		MOUSE_MODE_CONFINED_HIDDEN,
+		MOUSE_MODE_MUTLIPLE,
 	};
 
 	virtual void mouse_set_mode(MouseMode p_mode);
@@ -287,6 +288,7 @@ public:
 	virtual int get_screen_count() const = 0;
 	virtual int get_primary_screen() const = 0;
 	virtual int get_keyboard_focus_screen() const { return get_primary_screen(); }
+	virtual int get_screen_from_point(const Vector2 &p_point) const;
 	virtual int get_screen_from_rect(const Rect2 &p_rect) const;
 	virtual Point2i screen_get_position(int p_screen = SCREEN_OF_MAIN_WINDOW) const = 0;
 	virtual Size2i screen_get_size(int p_screen = SCREEN_OF_MAIN_WINDOW) const = 0;
@@ -329,6 +331,8 @@ public:
 	};
 
 	typedef int WindowID;
+	typedef int CursorID;
+	typedef int KeyboardID;
 
 	virtual Vector<DisplayServer::WindowID> get_window_list() const = 0;
 
@@ -425,6 +429,9 @@ public:
 	virtual void window_set_mode(WindowMode p_mode, WindowID p_window = MAIN_WINDOW_ID) = 0;
 	virtual WindowMode window_get_mode(WindowID p_window = MAIN_WINDOW_ID) const = 0;
 
+	virtual void window_set_topmost(WindowID p_window = MAIN_WINDOW_ID) { return; };
+	virtual void register_input_window(WindowID p_window = MAIN_WINDOW_ID) { return; };
+
 	virtual void window_set_vsync_mode(VSyncMode p_vsync_mode, WindowID p_window = MAIN_WINDOW_ID);
 	virtual VSyncMode window_get_vsync_mode(WindowID p_window) const;
 
@@ -496,6 +503,15 @@ public:
 	virtual void cursor_set_shape(CursorShape p_shape);
 	virtual CursorShape cursor_get_shape() const;
 	virtual void cursor_set_custom_image(const Ref<Resource> &p_cursor, CursorShape p_shape = CURSOR_ARROW, const Vector2 &p_hotspot = Vector2());
+
+	virtual int multi_cursor_get_count() { return 0; };
+	virtual Vector2 multi_cursor_get_position(CursorID p_cursor = 0) { return Vector2(); };
+	virtual void multi_cursor_set_position(CursorID p_cursor, Vector2 p_position) { return; };
+	virtual void multi_cursor_event(CursorID p_cursor, int flags) { return; };
+	virtual bool multi_cursor_get_state(CursorID p_cursor, int button) { return false; };
+	virtual int multi_keyboard_get_count() { return 0; };
+	virtual bool multi_keyboard_get_state(KeyboardID p_keyboard, Key key) { return false; };
+	virtual TypedArray<int> multi_keyboard_get_keys(KeyboardID p_keyboard) { return false; };
 
 	virtual bool get_swap_cancel_ok();
 

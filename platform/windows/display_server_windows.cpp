@@ -80,6 +80,39 @@ static void track_mouse_leave_event(HWND hWnd) {
 	TrackMouseEvent(&tme);
 }
 
+int get_virtual_key(Key p_key){
+	if(p_key == Key::SHIFT){
+		return VK_SHIFT;
+	}
+	if(p_key == Key::CTRL){
+		return VK_CONTROL;
+	}
+	if(p_key == Key::ALT){
+		return VK_MENU;
+	}
+	if(p_key == Key::TAB){
+		return VK_TAB;
+	}
+	if(p_key == Key::ESCAPE){
+		return VK_ESCAPE;
+	}
+	if(p_key == Key::UP){
+		return VK_UP;
+	}
+	if(p_key == Key::DOWN){
+		return VK_DOWN;
+	}
+	if(p_key == Key::LEFT){
+		return VK_LEFT;
+	}
+	if(p_key == Key::RIGHT){
+		return VK_RIGHT;
+	}
+	Key keycode_no_mod = (Key)(p_key & KeyModifierMask::CODE_MASK);
+	UINT vk = KeyMappingWindows::get_virtual_key(keycode_no_mod);
+	return vk;
+}
+
 bool DisplayServerWindows::has_feature(Feature p_feature) const {
 	switch (p_feature) {
 		case FEATURE_SUBWINDOWS:
@@ -164,26 +197,68 @@ DisplayServer::WindowID DisplayServerWindows::_get_focused_window_or_popup() con
 	return last_focused_window;
 }
 
-void DisplayServerWindows::_register_raw_input_devices(WindowID p_target_window) {
-	use_raw_input = true;
 
-	RAWINPUTDEVICE rid[1] = {};
+void DisplayServerWindows::register_input_window(WindowID p_window) {
+	use_raw_input = true;
+	keep_registered = p_window;
+
+	RAWINPUTDEVICE rid[2] = {};
 	rid[0].usUsagePage = 0x01;
 	rid[0].usUsage = 0x02;
 	rid[0].dwFlags = 0;
+	rid[1].usUsagePage = 0x01;
+	rid[1].usUsage = 0x06;
+	rid[1].dwFlags = 0;
+
+	// WARN_PRINT(itos(p_window) + " " + itos(INVALID_WINDOW_ID) + " " + (windows.has(p_window) ? "t" : "f"));
+	if (p_window != INVALID_WINDOW_ID && windows.has(p_window)) {
+		// Follow the defined window
+		rid[0].hwndTarget = windows[p_window].hWnd;
+		rid[0].dwFlags |= RIDEV_INPUTSINK;
+		rid[1].hwndTarget = windows[p_window].hWnd;
+		rid[1].dwFlags |= RIDEV_INPUTSINK;
+		// WARN_PRINT("Kj");
+	} 
+
+	if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE) {
+		// WARN_PRINT("  fail");
+		// Registration failed.
+		use_raw_input = false;
+	}
+}
+
+void DisplayServerWindows::_register_raw_input_devices(WindowID p_target_window) {
+	use_raw_input = true;
+
+	if(keep_registered >= 0){
+		register_input_window(keep_registered);
+		return;
+	}
+
+	RAWINPUTDEVICE rid[2] = {};
+	rid[0].usUsagePage = 0x01;
+	rid[0].usUsage = 0x02;
+	rid[0].dwFlags = 0;
+	rid[1].usUsagePage = 0x01;
+	rid[1].usUsage = 0x06;
+	rid[1].dwFlags = 0;
 
 	if (p_target_window != INVALID_WINDOW_ID && windows.has(p_target_window)) {
 		// Follow the defined window
 		rid[0].hwndTarget = windows[p_target_window].hWnd;
+		rid[1].hwndTarget = windows[p_target_window].hWnd;
 	} else {
 		// Follow the keyboard focus
 		rid[0].hwndTarget = 0;
+		rid[1].hwndTarget = 0;
 	}
 
-	if (RegisterRawInputDevices(rid, 1, sizeof(rid[0])) == FALSE) {
+	if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE) {
 		// Registration failed.
 		use_raw_input = false;
 	}
+
+	
 }
 
 bool DisplayServerWindows::tts_is_speaking() const {
@@ -1737,6 +1812,14 @@ DisplayServer::WindowMode DisplayServerWindows::window_get_mode(WindowID p_windo
 	}
 }
 
+void DisplayServerWindows::window_set_topmost(WindowID p_window) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND(!windows.has(p_window));
+
+	SetWindowPos(windows[p_window].hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+}
+
 bool DisplayServerWindows::window_is_maximize_allowed(WindowID p_window) const {
 	_THREAD_SAFE_METHOD_
 
@@ -2171,6 +2254,147 @@ void DisplayServerWindows::cursor_set_custom_image(const Ref<Resource> &p_cursor
 		cursor_set_shape(c);
 	}
 }
+
+
+int DisplayServerWindows::multi_cursor_get_count() {
+	_THREAD_SAFE_METHOD_
+
+	return cust_cursors.size();
+}
+
+Vector2 DisplayServerWindows::multi_cursor_get_position(CursorID p_cursor) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND_V(!cust_cursors.has(p_cursor), Vector2());
+	const CursorData &cd = cust_cursors[p_cursor];
+
+	return cd.pos;
+}
+
+void DisplayServerWindows::multi_cursor_set_position(CursorID p_cursor, Vector2 p_position) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND(!cust_cursors.has(p_cursor));
+	cust_cursors[p_cursor].pos = p_position;
+}
+
+void DisplayServerWindows::multi_cursor_event(CursorID p_cursor, int flags) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND(!cust_cursors.has(p_cursor));
+	CursorData cd = cust_cursors[p_cursor];
+	// DWORD flags = 0;
+	// flags |= MOUSEEVENTF_ABSOLUTE;
+	// flags |= MOUSEEVENTF_MOVE;
+	// flags |= MOUSEEVENTF_LEFTDOWN;
+	// mouse_event(flags, cd.pos.x, cd.pos.y, 0, 0);
+
+	// SetCursorPos(cd.pos.x, cd.pos.y);
+	// warp_mouse(cd.pos);
+
+	RECT screenRect;
+	GetClipCursor(&screenRect);
+
+	POINT resetPos;
+	GetCursorPos(&resetPos);
+	// POINT p;
+	// p.x = cd.pos.x;
+	// p.y = cd.pos.y;
+	// ClientToScreen(windows[_get_focused_window_or_popup()].hWnd, &p);
+
+	INPUT Input_[1];
+	ZeroMemory(Input_, sizeof(INPUT) * 1);
+	Input_[0].type = INPUT_MOUSE;
+	Input_[0].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+	SendInput(1, Input_, sizeof(INPUT));
+	// if(get_mouse_state(0)){
+	// }
+	SetCursorPos(cd.pos.x + screenRect.left, cd.pos.y + screenRect.top);
+
+
+	INPUT Input[3];
+	ZeroMemory(Input, sizeof(INPUT) * 3);
+	
+	Input[0].type = INPUT_MOUSE;
+	Input[0].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+
+	Input[1].type = INPUT_MOUSE;
+	Input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+
+	Input[2].type = INPUT_MOUSE;
+	Input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+	SendInput(3, Input, sizeof(INPUT));
+
+	// Input[0].mi.dwFlags = flags;
+	// SendInput(1, Input, sizeof(INPUT));
+
+	SetCursorPos(resetPos.x, resetPos.y);
+}
+
+bool DisplayServerWindows::multi_cursor_get_state(CursorID p_cursor, int button) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND_V(!cust_cursors.has(p_cursor), false);
+	const CursorData &cd = cust_cursors[p_cursor];
+
+	if(button == 0){
+		return cd.lbutton > 0;
+	}
+	if(button == 1){
+		return cd.mbutton > 0;
+	}
+	if(button == 2){
+		return cd.rbutton > 0;
+	}
+	return false;
+}
+
+int DisplayServerWindows::multi_keyboard_get_count() {
+	_THREAD_SAFE_METHOD_
+
+	return cust_keyboards.size();
+}
+
+bool DisplayServerWindows::multi_keyboard_get_state(KeyboardID p_keyboard, Key key) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND_V(!cust_keyboards.has(p_keyboard), false);
+	const KeyboardData &kd = cust_keyboards[p_keyboard];
+
+	UINT vk = get_virtual_key(key);
+	// WARN_PRINT("vk " + itos(vk));
+
+	return kd.keys.has(get_virtual_key(key));
+}
+
+TypedArray<int> DisplayServerWindows::multi_keyboard_get_keys(KeyboardID p_keyboard) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND_V(!cust_keyboards.has(p_keyboard), false);
+	const KeyboardData &kd = cust_keyboards[p_keyboard];
+
+	// TypedArray<int> arr = [];
+	// for (const int &i : kd.keys) {
+	// 	const Callable callable = E.value.input_event_callback;
+	// 	if (callable.is_valid()) {
+	// 		callable.callp((const Variant **)&evp, 1, ret, ce);
+	// 	}
+	// }
+
+	TypedArray<int> ret;
+	// HashSet<int>::Iterator elem = kd.keys.begin();
+	// while (elem) {
+	// 	ret.push_back(elem->value);
+	// 	++elem;
+	// }
+
+	for (HashSet<int>::Iterator E = kd.keys.begin(); E; ++E) {
+		ret.push_back(*E);
+	}
+
+	return ret;
+}
+
 
 bool DisplayServerWindows::get_swap_cancel_ok() {
 	return true;
@@ -3048,9 +3272,9 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 		} break;
 		case WM_INPUT: {
-			if (mouse_mode != MOUSE_MODE_CAPTURED || !use_raw_input) {
-				break;
-			}
+			// if (mouse_mode != MOUSE_MODE_CAPTURED || !use_raw_input) {
+			// 	break;
+			// }
 
 			UINT dwSize;
 
@@ -3065,7 +3289,7 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 			}
 
 			RAWINPUT *raw = (RAWINPUT *)lpb;
-
+			
 			if (raw->header.dwType == RIM_TYPEMOUSE) {
 				Ref<InputEventMouseMotion> mm;
 				mm.instantiate();
@@ -3084,7 +3308,6 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 				// Centering just so it works as before.
 				POINT pos = { (int)c.x, (int)c.y };
 				ClientToScreen(windows[window_id].hWnd, &pos);
-				SetCursorPos(pos.x, pos.y);
 
 				mm->set_position(c);
 				mm->set_global_position(c);
@@ -3113,9 +3336,98 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 					old_x = coords.x;
 					old_y = coords.y;
 				}
+				
+				HANDLE handle = raw->header.hDevice;
+				if(handle > 0){
+					// WARN_PRINT(itos(HandleToLong(handle)));
+					CursorData cd = {};
+					bool found = false;
+					CursorID foundID = 0;
+					for (KeyValue<int, CursorData> &E : cust_cursors) {
+						if(E.value.handle == handle){
+							found = true;
+							foundID = E.key;
+							break;
+						}
+					}
+					if(found){
+						cd = cust_cursors[foundID];
+					} else {
+						cd.handle = handle;
+						cd.pos = Vector2(old_x, old_y);
+						foundID = cust_cursors.size();
+						cust_cursors[foundID] = cd;
+					}
+					
+					// int prevScreen = get_screen_from_point(cust_cursors[foundID].pos);
+					cust_cursors[foundID].pos += mm->get_relative();
+					// if(get_screen_from_point(cust_cursors[foundID].pos) == -1){
+					// 	Point2i screenPos = screen_get_position(prevScreen);
+					// 	Size2i screenSize = screen_get_size(prevScreen);
+					// 	cust_cursors[foundID].pos = cust_cursors[foundID].pos.clamp(screenPos, screenPos + screen_get_size());
+					// }
+
+					if(raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN){
+						cust_cursors[foundID].lbutton = 1;
+					}
+					if(raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP){
+						cust_cursors[foundID].lbutton = 0;
+					}
+					if(raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN){
+						cust_cursors[foundID].mbutton = 1;
+					}
+					if(raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP){
+						cust_cursors[foundID].mbutton = 0;
+					}
+					if(raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN){
+						cust_cursors[foundID].rbutton = 1;
+					}
+					if(raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP){
+						cust_cursors[foundID].rbutton = 0;
+					}
+				}
+
+				if (mouse_mode != MOUSE_MODE_CAPTURED || !use_raw_input) {
+					break;
+				}
+				SetCursorPos(pos.x, pos.y);
 
 				if ((windows[window_id].window_has_focus || windows[window_id].is_popup) && mm->get_relative() != Vector2()) {
 					Input::get_singleton()->parse_input_event(mm);
+				}
+			} else if(raw->header.dwType == RIM_TYPEKEYBOARD) {
+				HANDLE handle = raw->header.hDevice;
+				// WARN_PRINT(itos(HandleToLong(handle)) + " " + itos(raw->data.keyboard.VKey));
+				if(handle > 0){
+					KeyboardData kd = {};
+					bool found = false;
+					KeyboardID foundID = 0;
+					for (KeyValue<int, KeyboardData> &E : cust_keyboards) {
+						if(E.value.handle == handle){
+							found = true;
+							foundID = E.key;
+							break;
+						}
+					}
+					if(found){
+						kd = cust_keyboards[foundID];
+					} else {
+						kd.handle = handle;
+						foundID = cust_keyboards.size();
+						cust_keyboards[foundID] = kd;
+					}
+					
+					// WARN_PRINT("F " + itos(raw->data.keyboard.Flags));
+					if(raw->data.keyboard.Flags == RI_KEY_MAKE || raw->data.keyboard.Flags == 2 || raw->data.keyboard.Flags == 4){
+						// WARN_PRINT(" I " + itos(raw->data.keyboard.VKey));
+						cust_keyboards[foundID].keys.insert(raw->data.keyboard.VKey);
+					}
+					if(raw->data.keyboard.Flags == RI_KEY_BREAK || raw->data.keyboard.Flags == 3 || raw->data.keyboard.Flags == 5){
+						// WARN_PRINT(" E " + itos(raw->data.keyboard.VKey));
+						cust_keyboards[foundID].keys.erase(raw->data.keyboard.VKey);
+					}
+
+					// WARN_PRINT(itos(kd.keys.size()));
 				}
 			}
 			delete[] lpb;
@@ -3760,7 +4072,7 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		} break;
 
 		case WM_ENTERSIZEMOVE: {
-			Input::get_singleton()->release_pressed_events();
+			// Input::get_singleton()->release_pressed_events();
 			windows[window_id].move_timer_id = SetTimer(windows[window_id].hWnd, 1, USER_TIMER_MINIMUM, (TIMERPROC) nullptr);
 			windows[window_id].timer_active = true;
 			windows[window_id].user_moving = true;
@@ -3999,7 +4311,7 @@ void DisplayServerWindows::_process_activate_event(WindowID p_window_id, WPARAM 
 		// Restore mouse mode.
 		_set_mouse_mode_impl(mouse_mode);
 	} else { // WM_INACTIVE.
-		Input::get_singleton()->release_pressed_events();
+		// Input::get_singleton()->release_pressed_events();
 		_send_window_event(windows[p_window_id], WINDOW_EVENT_FOCUS_OUT);
 		windows[p_window_id].window_focused = false;
 		alt_mem = false;
@@ -4019,6 +4331,24 @@ bool DisplayServerWindows::get_key_state(Key p_key) {
 	}
 	if(p_key == Key::ALT){
 		return GetAsyncKeyState(VK_MENU) < 0;
+	}
+	if(p_key == Key::TAB){
+		return GetAsyncKeyState(VK_TAB) < 0;
+	}
+	if(p_key == Key::ESCAPE){
+		return GetAsyncKeyState(VK_ESCAPE) < 0;
+	}
+	if(p_key == Key::UP){
+		return GetAsyncKeyState(VK_UP) < 0;
+	}
+	if(p_key == Key::DOWN){
+		return GetAsyncKeyState(VK_DOWN) < 0;
+	}
+	if(p_key == Key::LEFT){
+		return GetAsyncKeyState(VK_LEFT) < 0;
+	}
+	if(p_key == Key::RIGHT){
+		return GetAsyncKeyState(VK_RIGHT) < 0;
 	}
 	Key keycode_no_mod = (Key)(p_key & KeyModifierMask::CODE_MASK);
 	UINT vk = KeyMappingWindows::get_virtual_key(keycode_no_mod);
