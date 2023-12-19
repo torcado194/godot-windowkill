@@ -114,6 +114,8 @@ public:
 
 	virtual void map_force_update(RID p_map) = 0;
 
+	virtual Vector3 map_get_random_point(RID p_map, uint32_t p_navigation_layers, bool p_uniformly) const = 0;
+
 	/// Creates a new region.
 	virtual RID region_create() = 0;
 
@@ -160,6 +162,8 @@ public:
 	virtual int region_get_connections_count(RID p_region) const = 0;
 	virtual Vector3 region_get_connection_pathway_start(RID p_region, int p_connection_id) const = 0;
 	virtual Vector3 region_get_connection_pathway_end(RID p_region, int p_connection_id) const = 0;
+
+	virtual Vector3 region_get_random_point(RID p_region, uint32_t p_navigation_layers, bool p_uniformly) const = 0;
 
 	/// Creates a new link between positions in the nav map.
 	virtual RID link_create() = 0;
@@ -302,6 +306,7 @@ public:
 	/// Note: This function is not thread safe.
 	virtual void process(real_t delta_time) = 0;
 	virtual void init() = 0;
+	virtual void sync() = 0;
 	virtual void finish() = 0;
 
 	/// Returns a customized navigation path using a query parameters object
@@ -309,8 +314,9 @@ public:
 
 	virtual NavigationUtilities::PathQueryResult _query_path(const NavigationUtilities::PathQueryParameters &p_parameters) const = 0;
 
-	virtual void parse_source_geometry_data(const Ref<NavigationMesh> &p_navigation_mesh, Ref<NavigationMeshSourceGeometryData3D> p_source_geometry_data, Node *p_root_node, const Callable &p_callback = Callable()) = 0;
-	virtual void bake_from_source_geometry_data(Ref<NavigationMesh> p_navigation_mesh, const Ref<NavigationMeshSourceGeometryData3D> &p_source_geometry_data, const Callable &p_callback = Callable()) = 0;
+	virtual void parse_source_geometry_data(const Ref<NavigationMesh> &p_navigation_mesh, const Ref<NavigationMeshSourceGeometryData3D> &p_source_geometry_data, Node *p_root_node, const Callable &p_callback = Callable()) = 0;
+	virtual void bake_from_source_geometry_data(const Ref<NavigationMesh> &p_navigation_mesh, const Ref<NavigationMeshSourceGeometryData3D> &p_source_geometry_data, const Callable &p_callback = Callable()) = 0;
+	virtual void bake_from_source_geometry_data_async(const Ref<NavigationMesh> &p_navigation_mesh, const Ref<NavigationMeshSourceGeometryData3D> &p_source_geometry_data, const Callable &p_callback = Callable()) = 0;
 
 	NavigationServer3D();
 	~NavigationServer3D() override;

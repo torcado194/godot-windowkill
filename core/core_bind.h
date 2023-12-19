@@ -129,6 +129,7 @@ public:
 	enum RenderingDriver {
 		RENDERING_DRIVER_VULKAN,
 		RENDERING_DRIVER_OPENGL3,
+		RENDERING_DRIVER_D3D12,
 	};
 
 	virtual PackedStringArray get_connected_midi_inputs();
@@ -320,6 +321,7 @@ protected:
 
 public:
 	static Geometry3D *get_singleton();
+	Vector<Vector3> compute_convex_mesh_points(const TypedArray<Plane> &p_planes);
 	TypedArray<Plane> build_box_planes(const Vector3 &p_extents);
 	TypedArray<Plane> build_cylinder_planes(float p_radius, float p_height, int p_sides, Vector3::Axis p_axis = Vector3::AXIS_Z);
 	TypedArray<Plane> build_capsule_planes(float p_radius, float p_height, int p_sides, int p_lats, Vector3::Axis p_axis = Vector3::AXIS_Z);

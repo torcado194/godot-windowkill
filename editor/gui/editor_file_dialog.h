@@ -103,6 +103,7 @@ private:
 	PopupMenu *item_menu = nullptr;
 	TextureRect *preview = nullptr;
 	VBoxContainer *preview_vb = nullptr;
+	HSplitContainer *body_hsplit = nullptr;
 	HSplitContainer *list_hb = nullptr;
 	HBoxContainer *file_box = nullptr;
 	LineEdit *file = nullptr;
@@ -238,6 +239,8 @@ protected:
 	static void _bind_methods();
 
 public:
+	Color get_dir_icon_color(const String &p_dir_path);
+
 	// Public for use with callable_mp.
 	void _file_submitted(const String &p_file);
 
@@ -281,6 +284,8 @@ public:
 
 	void set_previews_enabled(bool p_enabled);
 	bool are_previews_enabled();
+
+	void add_side_menu(Control *p_menu, const String &p_title = "");
 
 	EditorFileDialog();
 	~EditorFileDialog();

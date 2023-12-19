@@ -39,10 +39,11 @@
 
 ScriptLanguage *ScriptServer::_languages[MAX_LANGUAGES];
 int ScriptServer::_language_count = 0;
+bool ScriptServer::languages_ready = false;
+Mutex ScriptServer::languages_mutex;
 
 bool ScriptServer::scripting_enabled = true;
 bool ScriptServer::reload_scripts_on_save = false;
-SafeFlag ScriptServer::languages_finished; // Used until GH-76581 is fixed properly.
 ScriptEditRequestFunction ScriptServer::edit_request_func = nullptr;
 
 void Script::_notification(int p_what) {
@@ -137,6 +138,8 @@ void Script::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_base_script"), &Script::get_base_script);
 	ClassDB::bind_method(D_METHOD("get_instance_base_type"), &Script::get_instance_base_type);
 
+	ClassDB::bind_method(D_METHOD("get_global_name"), &Script::get_global_name);
+
 	ClassDB::bind_method(D_METHOD("has_script_signal", "signal_name"), &Script::has_script_signal);
 
 	ClassDB::bind_method(D_METHOD("get_script_property_list"), &Script::_get_script_property_list);
@@ -146,6 +149,7 @@ void Script::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_property_default_value", "property"), &Script::_get_property_default_value);
 
 	ClassDB::bind_method(D_METHOD("is_tool"), &Script::is_tool);
+	ClassDB::bind_method(D_METHOD("is_abstract"), &Script::is_abstract);
 
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "source_code", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_source_code", "get_source_code");
 }
@@ -159,12 +163,13 @@ bool ScriptServer::is_scripting_enabled() {
 }
 
 ScriptLanguage *ScriptServer::get_language(int p_idx) {
+	MutexLock lock(languages_mutex);
 	ERR_FAIL_INDEX_V(p_idx, _language_count, nullptr);
-
 	return _languages[p_idx];
 }
 
 Error ScriptServer::register_language(ScriptLanguage *p_language) {
+	MutexLock lock(languages_mutex);
 	ERR_FAIL_NULL_V(p_language, ERR_INVALID_PARAMETER);
 	ERR_FAIL_COND_V_MSG(_language_count >= MAX_LANGUAGES, ERR_UNAVAILABLE, "Script languages limit has been reach, cannot register more.");
 	for (int i = 0; i < _language_count; i++) {
@@ -178,6 +183,8 @@ Error ScriptServer::register_language(ScriptLanguage *p_language) {
 }
 
 Error ScriptServer::unregister_language(const ScriptLanguage *p_language) {
+	MutexLock lock(languages_mutex);
+
 	for (int i = 0; i < _language_count; i++) {
 		if (_languages[i] == p_language) {
 			_language_count--;
@@ -218,17 +225,53 @@ void ScriptServer::init_languages() {
 		}
 	}
 
-	for (int i = 0; i < _language_count; i++) {
-		_languages[i]->init();
+	HashSet<ScriptLanguage *> langs_to_init;
+	{
+		MutexLock lock(languages_mutex);
+		for (int i = 0; i < _language_count; i++) {
+			if (_languages[i]) {
+				langs_to_init.insert(_languages[i]);
+			}
+		}
+	}
+
+	for (ScriptLanguage *E : langs_to_init) {
+		E->init();
+	}
+
+	{
+		MutexLock lock(languages_mutex);
+		languages_ready = true;
 	}
 }
 
 void ScriptServer::finish_languages() {
-	for (int i = 0; i < _language_count; i++) {
-		_languages[i]->finish();
+	HashSet<ScriptLanguage *> langs_to_finish;
+
+	{
+		MutexLock lock(languages_mutex);
+		for (int i = 0; i < _language_count; i++) {
+			if (_languages[i]) {
+				langs_to_finish.insert(_languages[i]);
+			}
+		}
 	}
+
+	for (ScriptLanguage *E : langs_to_finish) {
+		E->finish();
+	}
+
+	{
+		MutexLock lock(languages_mutex);
+		languages_ready = false;
+	}
+
 	global_classes_clear();
-	languages_finished.set();
+}
+
+bool ScriptServer::are_languages_initialized() {
+	MutexLock lock(languages_mutex);
+	return languages_ready;
 }
 
 void ScriptServer::set_reload_scripts_on_save(bool p_enable) {
@@ -240,7 +283,8 @@ bool ScriptServer::is_reload_scripts_on_save_enabled() {
 }
 
 void ScriptServer::thread_enter() {
-	if (!languages_finished.is_set()) {
+	MutexLock lock(languages_mutex);
+	if (!languages_ready) {
 		return;
 	}
 	for (int i = 0; i < _language_count; i++) {
@@ -249,7 +293,8 @@ void ScriptServer::thread_enter() {
 }
 
 void ScriptServer::thread_exit() {
-	if (!languages_finished.is_set()) {
+	MutexLock lock(languages_mutex);
+	if (!languages_ready) {
 		return;
 	}
 	for (int i = 0; i < _language_count; i++) {
@@ -388,40 +433,6 @@ String ScriptServer::get_global_class_cache_file_path() {
 
 ////////////////////
 
-Variant ScriptInstance::call_const(const StringName &p_method, const Variant **p_args, int p_argcount, Callable::CallError &r_error) {
-	return callp(p_method, p_args, p_argcount, r_error);
-}
-
-void ScriptInstance::get_property_state(List<Pair<StringName, Variant>> &state) {
-	List<PropertyInfo> pinfo;
-	get_property_list(&pinfo);
-	for (const PropertyInfo &E : pinfo) {
-		if (E.usage & PROPERTY_USAGE_STORAGE) {
-			Pair<StringName, Variant> p;
-			p.first = E.name;
-			if (get(p.first, p.second)) {
-				state.push_back(p);
-			}
-		}
-	}
-}
-
-void ScriptInstance::property_set_fallback(const StringName &, const Variant &, bool *r_valid) {
-	if (r_valid) {
-		*r_valid = false;
-	}
-}
-
-Variant ScriptInstance::property_get_fallback(const StringName &, bool *r_valid) {
-	if (r_valid) {
-		*r_valid = false;
-	}
-	return Variant();
-}
-
-ScriptInstance::~ScriptInstance() {
-}
-
 ScriptCodeCompletionCache *ScriptCodeCompletionCache::singleton = nullptr;
 ScriptCodeCompletionCache::ScriptCodeCompletionCache() {
 	singleton = this;
@@ -482,7 +493,6 @@ TypedArray<int> ScriptLanguage::CodeCompletionOption::get_option_characteristics
 	}
 	charac.push_back(matches.size());
 	charac.push_back((matches[0].first == 0) ? 0 : 1);
-	charac.push_back(location);
 	const char32_t *target_char = &p_base[0];
 	int bad_case = 0;
 	for (const Pair<int, int> &match_segment : matches) {
@@ -494,6 +504,7 @@ TypedArray<int> ScriptLanguage::CodeCompletionOption::get_option_characteristics
 		}
 	}
 	charac.push_back(bad_case);
+	charac.push_back(location);
 	charac.push_back(matches[0].first);
 	last_matches = matches;
 	return charac;
@@ -571,9 +582,6 @@ void PlaceHolderScriptInstance::get_property_list(List<PropertyInfo> *p_properti
 	} else {
 		for (const PropertyInfo &E : properties) {
 			PropertyInfo pinfo = E;
-			if (!values.has(pinfo.name)) {
-				pinfo.usage |= PROPERTY_USAGE_SCRIPT_DEFAULT_VALUE;
-			}
 			p_properties->push_back(E);
 		}
 	}
@@ -625,6 +633,10 @@ bool PlaceHolderScriptInstance::has_method(const StringName &p_method) const {
 void PlaceHolderScriptInstance::update(const List<PropertyInfo> &p_properties, const HashMap<StringName, Variant> &p_values) {
 	HashSet<StringName> new_values;
 	for (const PropertyInfo &E : p_properties) {
+		if (E.usage & (PROPERTY_USAGE_GROUP | PROPERTY_USAGE_SUBGROUP | PROPERTY_USAGE_CATEGORY)) {
+			continue;
+		}
+
 		StringName n = E.name;
 		new_values.insert(n);
 

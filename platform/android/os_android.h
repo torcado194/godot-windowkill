@@ -165,13 +165,19 @@ public:
 
 	virtual Error setup_remote_filesystem(const String &p_server_host, int p_port, const String &p_password, String &r_project_path) override;
 
-	virtual void benchmark_begin_measure(const String &p_what) override;
-	virtual void benchmark_end_measure(const String &p_what) override;
+	virtual void benchmark_begin_measure(const String &p_context, const String &p_what) override;
+	virtual void benchmark_end_measure(const String &p_context, const String &p_what) override;
 	virtual void benchmark_dump() override;
+
+	virtual void load_platform_gdextensions() const override;
 
 	virtual bool _check_internal_feature_support(const String &p_feature) override;
 	OS_Android(GodotJavaWrapper *p_godot_java, GodotIOJavaWrapper *p_godot_io_java, bool p_use_apk_expansion);
 	~OS_Android();
+
+private:
+	// Location where we relocate external dynamic libraries to make them accessible.
+	String get_dynamic_libraries_path() const;
 };
 
 #endif // OS_ANDROID_H

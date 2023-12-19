@@ -70,6 +70,7 @@ class EditorExportPlatformIOS : public EditorExportPlatform {
 		String name;
 		bool simulator = false;
 		bool wifi = false;
+		bool use_ios_deploy = false;
 	};
 
 	Vector<Device> devices;
@@ -81,6 +82,7 @@ class EditorExportPlatformIOS : public EditorExportPlatform {
 	Thread check_for_changes_thread;
 	SafeFlag quit_request;
 
+	static bool _check_xcode_install();
 	static void _check_for_changes_poll_thread(void *ud);
 #endif
 
@@ -138,7 +140,7 @@ class EditorExportPlatformIOS : public EditorExportPlatform {
 	Error _export_additional_assets(const String &p_out_dir, const Vector<SharedObject> &p_libraries, Vector<IOSExportAsset> &r_exported_assets);
 	Error _export_ios_plugins(const Ref<EditorExportPreset> &p_preset, IOSConfigData &p_config_data, const String &dest_dir, Vector<IOSExportAsset> &r_exported_assets, bool p_debug);
 
-	Error _export_project_helper(const Ref<EditorExportPreset> &p_preset, bool p_debug, const String &p_path, int p_flags, bool p_simulator, bool p_skip_ipa);
+	Error _export_project_helper(const Ref<EditorExportPreset> &p_preset, bool p_debug, const String &p_path, int p_flags, bool p_simulator, bool p_oneclick);
 
 	bool is_package_name_valid(const String &p_package, String *r_error = nullptr) const;
 
@@ -181,9 +183,17 @@ public:
 
 	virtual List<String> get_binary_extensions(const Ref<EditorExportPreset> &p_preset) const override {
 		List<String> list;
-		list.push_back("ipa");
+		if (p_preset.is_valid()) {
+			bool project_only = p_preset->get("application/export_project_only");
+			if (project_only) {
+				list.push_back("xcodeproj");
+			} else {
+				list.push_back("ipa");
+			}
+		}
 		return list;
 	}
+
 	virtual Error export_project(const Ref<EditorExportPreset> &p_preset, bool p_debug, const String &p_path, int p_flags = 0) override;
 
 	virtual bool has_valid_export_configuration(const Ref<EditorExportPreset> &p_preset, String &r_error, bool &r_missing_templates, bool p_debug = false) const override;

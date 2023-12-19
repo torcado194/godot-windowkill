@@ -58,6 +58,7 @@ public:
 	Vector3 map_get_closest_point(RID p_map, const Vector3 &p_point) const override { return Vector3(); }
 	Vector3 map_get_closest_point_normal(RID p_map, const Vector3 &p_point) const override { return Vector3(); }
 	RID map_get_closest_point_owner(RID p_map, const Vector3 &p_point) const override { return RID(); }
+	Vector3 map_get_random_point(RID p_map, uint32_t p_navigation_layers, bool p_uniformly) const override { return Vector3(); }
 	TypedArray<RID> map_get_links(RID p_map) const override { return TypedArray<RID>(); }
 	TypedArray<RID> map_get_regions(RID p_map) const override { return TypedArray<RID>(); }
 	TypedArray<RID> map_get_agents(RID p_map) const override { return TypedArray<RID>(); }
@@ -87,6 +88,7 @@ public:
 	int region_get_connections_count(RID p_region) const override { return 0; }
 	Vector3 region_get_connection_pathway_start(RID p_region, int p_connection_id) const override { return Vector3(); }
 	Vector3 region_get_connection_pathway_end(RID p_region, int p_connection_id) const override { return Vector3(); }
+	Vector3 region_get_random_point(RID p_region, uint32_t p_navigation_layers, bool p_uniformly) const override { return Vector3(); }
 	RID link_create() override { return RID(); }
 	void link_set_map(RID p_link, RID p_map) override {}
 	RID link_get_map(RID p_link) const override { return RID(); }
@@ -145,12 +147,14 @@ public:
 	void obstacle_set_position(RID p_obstacle, Vector3 p_position) override {}
 	void obstacle_set_vertices(RID p_obstacle, const Vector<Vector3> &p_vertices) override {}
 	void obstacle_set_avoidance_layers(RID p_obstacle, uint32_t p_layers) override {}
-	void parse_source_geometry_data(const Ref<NavigationMesh> &p_navigation_mesh, Ref<NavigationMeshSourceGeometryData3D> p_source_geometry_data, Node *p_root_node, const Callable &p_callback = Callable()) override {}
-	void bake_from_source_geometry_data(Ref<NavigationMesh> p_navigation_mesh, const Ref<NavigationMeshSourceGeometryData3D> &p_source_geometry_data, const Callable &p_callback = Callable()) override {}
+	void parse_source_geometry_data(const Ref<NavigationMesh> &p_navigation_mesh, const Ref<NavigationMeshSourceGeometryData3D> &p_source_geometry_data, Node *p_root_node, const Callable &p_callback = Callable()) override {}
+	void bake_from_source_geometry_data(const Ref<NavigationMesh> &p_navigation_mesh, const Ref<NavigationMeshSourceGeometryData3D> &p_source_geometry_data, const Callable &p_callback = Callable()) override {}
+	void bake_from_source_geometry_data_async(const Ref<NavigationMesh> &p_navigation_mesh, const Ref<NavigationMeshSourceGeometryData3D> &p_source_geometry_data, const Callable &p_callback = Callable()) override {}
 	void free(RID p_object) override {}
 	void set_active(bool p_active) override {}
 	void process(real_t delta_time) override {}
 	void init() override {}
+	void sync() override {}
 	void finish() override {}
 	NavigationUtilities::PathQueryResult _query_path(const NavigationUtilities::PathQueryParameters &p_parameters) const override { return NavigationUtilities::PathQueryResult(); }
 	int get_process_info(ProcessInfo p_info) const override { return 0; }

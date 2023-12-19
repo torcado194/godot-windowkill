@@ -185,6 +185,14 @@ def get_opts():
         BoolVariable("use_static_cpp", "Link MinGW/MSVC C++ runtime libraries statically", True),
         BoolVariable("use_asan", "Use address sanitizer (ASAN)", False),
         BoolVariable("debug_crt", "Compile with MSVC's debug CRT (/MDd)", False),
+        BoolVariable("incremental_link", "Use MSVC incremental linking. May increase or decrease build times.", False),
+        ("angle_libs", "Path to the ANGLE static libraries", ""),
+        # Direct3D 12 support.
+        ("mesa_libs", "Path to the MESA/NIR static libraries (required for D3D12)", ""),
+        ("dxc_path", "Path to the DirectX Shader Compiler distribution (required for D3D12)", ""),
+        ("agility_sdk_path", "Path to the Agility SDK distribution (optional for D3D12)", ""),
+        ("agility_sdk_multiarch", "Whether the Agility SDK DLLs will be stored in arch-specific subdirectories", False),
+        ("pix_path", "Path to the PIX runtime distribution (optional for D3D12)", ""),
     ]
 
 
@@ -355,8 +363,9 @@ def configure_msvc(env, vcvars_msvc_config):
         else:
             env.AppendUnique(CCFLAGS=["/MD"])
 
-    # MSVC incremental linking is broken and _increases_ link time (GH-77968).
-    env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
+    # MSVC incremental linking is broken and may _increase_ link time (GH-77968).
+    if not env["incremental_link"]:
+        env.Append(LINKFLAGS=["/INCREMENTAL:NO"])
 
     if env["arch"] == "x86_32":
         env["x86_libtheora_opt_vc"] = True
@@ -382,7 +391,6 @@ def configure_msvc(env, vcvars_msvc_config):
             "WINMIDI_ENABLED",
             "TYPED_METHOD_BIND",
             "WIN32",
-            "MSVC",
             "WINVER=%s" % env["target_win_version"],
             "_WIN32_WINNT=%s" % env["target_win_version"],
         ]
@@ -417,6 +425,7 @@ def configure_msvc(env, vcvars_msvc_config):
         "dwmapi",
         "dwrite",
         "wbemuuid",
+        "ntdll",
     ]
 
     if env.debug_features:
@@ -427,9 +436,46 @@ def configure_msvc(env, vcvars_msvc_config):
         if not env["use_volk"]:
             LIBS += ["vulkan"]
 
+    if env["d3d12"]:
+        if env["dxc_path"] == "":
+            print("The Direct3D 12 rendering driver requires dxc_path to be set.")
+            sys.exit(255)
+
+        env.AppendUnique(CPPDEFINES=["D3D12_ENABLED"])
+        LIBS += ["d3d12", "dxgi", "dxguid"]
+        LIBS += ["version"]  # Mesa dependency.
+
+        # Needed for avoiding C1128.
+        if env["target"] == "release_debug":
+            env.Append(CXXFLAGS=["/bigobj"])
+
+        arch_subdir = "arm64" if env["arch"] == "arm64" else "x64"
+
+        # PIX
+        if env["pix_path"] != "":
+            env.Append(LIBPATH=[env["pix_path"] + "/bin/" + arch_subdir])
+            LIBS += ["WinPixEventRuntime"]
+
+        # Mesa
+        if env["mesa_libs"] == "":
+            print("The Direct3D 12 rendering driver requires mesa_libs to be set.")
+            sys.exit(255)
+
+        env.Append(LIBPATH=[env["mesa_libs"] + "/bin"])
+        LIBS += ["libNIR.windows." + env["arch"]]
+
     if env["opengl3"]:
         env.AppendUnique(CPPDEFINES=["GLES3_ENABLED"])
-        LIBS += ["opengl32"]
+        if env["angle_libs"] != "":
+            env.AppendUnique(CPPDEFINES=["EGL_STATIC"])
+            env.Append(LIBPATH=[env["angle_libs"]])
+            LIBS += [
+                "libANGLE.windows." + env["arch"],
+                "libEGL.windows." + env["arch"],
+                "libGLES.windows." + env["arch"],
+            ]
+            LIBS += ["dxgi", "d3d9", "d3d11"]
+        env.Prepend(CPPPATH=["#thirdparty/angle/include"])
 
     env.Append(LINKFLAGS=[p + env["LIBSUFFIX"] for p in LIBS])
 
@@ -469,7 +515,7 @@ def configure_msvc(env, vcvars_msvc_config):
     env["BUILDERS"]["ProgramOriginal"] = env["BUILDERS"]["Program"]
     env["BUILDERS"]["Program"] = methods.precious_program
 
-    env.Append(LINKFLAGS=["/NATVIS:platform\windows\godot.natvis"])
+    env.Append(LINKFLAGS=["/NATVIS:platform\\windows\\godot.natvis"])
     env.AppendUnique(LINKFLAGS=["/STACK:" + str(STACK_SIZE)])
 
 
@@ -599,6 +645,7 @@ def configure_mingw(env):
             "dwmapi",
             "dwrite",
             "wbemuuid",
+            "ntdll",
         ]
     )
 
@@ -610,9 +657,40 @@ def configure_mingw(env):
         if not env["use_volk"]:
             env.Append(LIBS=["vulkan"])
 
+    if env["d3d12"]:
+        env.AppendUnique(CPPDEFINES=["D3D12_ENABLED"])
+        env.Append(LIBS=["d3d12", "dxgi", "dxguid"])
+        env.Append(LIBS=["version"])  # Mesa dependency.
+
+        arch_subdir = "arm64" if env["arch"] == "arm64" else "x64"
+
+        # PIX
+        if env["pix_path"] != "":
+            print("PIX runtime is not supported with MinGW.")
+            sys.exit(255)
+
+        # Mesa
+        if env["mesa_libs"] == "":
+            print("The Direct3D 12 rendering driver requires mesa_libs to be set.")
+            sys.exit(255)
+
+        env.Append(LIBPATH=[env["mesa_libs"] + "/bin"])
+        env.Append(LIBS=["libNIR.windows." + env["arch"]])
+
     if env["opengl3"]:
         env.Append(CPPDEFINES=["GLES3_ENABLED"])
-        env.Append(LIBS=["opengl32"])
+        if env["angle_libs"] != "":
+            env.AppendUnique(CPPDEFINES=["EGL_STATIC"])
+            env.Append(LIBPATH=[env["angle_libs"]])
+            env.Append(
+                LIBS=[
+                    "EGL.windows." + env["arch"],
+                    "GLES.windows." + env["arch"],
+                    "ANGLE.windows." + env["arch"],
+                ]
+            )
+            env.Append(LIBS=["dxgi", "d3d9", "d3d11"])
+        env.Prepend(CPPPATH=["#thirdparty/angle/include"])
 
     env.Append(CPPDEFINES=["MINGW_ENABLED", ("MINGW_HAS_SECURE_API", 1)])
 

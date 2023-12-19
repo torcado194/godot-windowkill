@@ -33,6 +33,8 @@
 
 #ifdef GLES3_ENABLED
 
+#include "platform_gl.h"
+
 #include "config.h"
 #include "core/os/os.h"
 #include "core/templates/rid_owner.h"
@@ -40,14 +42,6 @@
 #include "servers/rendering/storage/texture_storage.h"
 
 #include "drivers/gles3/shaders/canvas_sdf.glsl.gen.h"
-
-// This must come first to avoid windows.h mess
-#include "platform_config.h"
-#ifndef OPENGL_INCLUDE_H
-#include <GLES3/gl3.h>
-#else
-#include OPENGL_INCLUDE_H
-#endif
 
 namespace GLES3 {
 
@@ -117,10 +111,6 @@ namespace GLES3 {
 #define _GL_TEXTURE_EXTERNAL_OES 0x8D65
 
 #define _EXT_TEXTURE_CUBE_MAP_SEAMLESS 0x884F
-
-#ifndef GLES_OVER_GL
-#define glClearDepth glClearDepthf
-#endif //!GLES_OVER_GL
 
 enum DefaultGLTexture {
 	DEFAULT_GL_TEXTURE_WHITE,
@@ -375,6 +365,7 @@ struct RenderTarget {
 
 	bool used_in_frame = false;
 	RS::ViewportMSAA msaa = RS::VIEWPORT_MSAA_DISABLED;
+	bool reattach_textures = false;
 
 	struct RTOverridden {
 		bool is_overridden = false;
@@ -494,7 +485,7 @@ public:
 
 	/* Texture API */
 
-	Texture *get_texture(RID p_rid) {
+	Texture *get_texture(RID p_rid) const {
 		Texture *texture = texture_owner.get_or_null(p_rid);
 		if (texture && texture->is_proxy) {
 			return texture_owner.get_or_null(texture->proxy_to);
@@ -612,7 +603,7 @@ public:
 	RenderTarget *get_render_target(RID p_rid) { return render_target_owner.get_or_null(p_rid); };
 	bool owns_render_target(RID p_rid) { return render_target_owner.owns(p_rid); };
 
-	void copy_scene_to_backbuffer(RenderTarget *rt, const bool uses_screen_texture, const bool uses_depth_texture);
+	void check_backbuffer(RenderTarget *rt, const bool uses_screen_texture, const bool uses_depth_texture);
 
 	virtual RID render_target_create() override;
 	virtual void render_target_free(RID p_rid) override;
@@ -629,6 +620,9 @@ public:
 	void render_target_clear_used(RID p_render_target);
 	virtual void render_target_set_msaa(RID p_render_target, RS::ViewportMSAA p_msaa) override;
 	virtual RS::ViewportMSAA render_target_get_msaa(RID p_render_target) const override;
+	virtual void render_target_set_msaa_needs_resolve(RID p_render_target, bool p_needs_resolve) override {}
+	virtual bool render_target_get_msaa_needs_resolve(RID p_render_target) const override { return false; }
+	virtual void render_target_do_msaa_resolve(RID p_render_target) override {}
 	virtual void render_target_set_use_hdr(RID p_render_target, bool p_use_hdr_2d) override {}
 	virtual bool render_target_is_using_hdr(RID p_render_target) const override { return false; }
 
@@ -642,6 +636,12 @@ public:
 	Color render_target_get_clear_request_color(RID p_render_target) override;
 	void render_target_disable_clear_request(RID p_render_target) override;
 	void render_target_do_clear_request(RID p_render_target) override;
+
+	GLuint render_target_get_fbo(RID p_render_target) const;
+	GLuint render_target_get_color(RID p_render_target) const;
+	GLuint render_target_get_depth(RID p_render_target) const;
+	void render_target_set_reattach_textures(RID p_render_target, bool p_reattach_textures) const;
+	bool render_target_is_reattach_textures(RID p_render_target) const;
 
 	virtual void render_target_set_sdf_size_and_scale(RID p_render_target, RS::ViewportSDFOversize p_size, RS::ViewportSDFScale p_scale) override;
 	virtual Rect2i render_target_get_sdf_rect(RID p_render_target) const override;
@@ -679,7 +679,7 @@ public:
 };
 
 inline String TextureStorage::get_framebuffer_error(GLenum p_status) {
-#if defined(DEBUG_ENABLED) && defined(GLES_OVER_GL)
+#if defined(DEBUG_ENABLED) && defined(GL_API_ENABLED)
 	if (p_status == GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT) {
 		return "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
 	} else if (p_status == GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT) {
