@@ -541,6 +541,18 @@ void Window::move_to_foreground() {
 	}
 }
 
+bool Window::get_user_moving() const {
+	ERR_READ_THREAD_GUARD_V(false);
+	if (!is_inside_tree()) {
+		return false;
+	}
+	if (window_id != DisplayServer::INVALID_WINDOW_ID) {
+		return DisplayServer::get_singleton()->window_get_user_moving(window_id);
+	}
+
+	return user_moving;
+}
+
 bool Window::can_draw() const {
 	ERR_READ_THREAD_GUARD_V(false);
 	if (!is_inside_tree()) {
@@ -2741,6 +2753,7 @@ void Window::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_unparent_when_invisible", "unparent"), &Window::set_unparent_when_invisible);
 
+	ClassDB::bind_method(D_METHOD("get_user_moving"), &Window::get_user_moving);
 	ClassDB::bind_method(D_METHOD("can_draw"), &Window::can_draw);
 	ClassDB::bind_method(D_METHOD("has_focus"), &Window::has_focus);
 	ClassDB::bind_method(D_METHOD("grab_focus"), &Window::grab_focus);
@@ -2960,6 +2973,8 @@ void Window::_bind_methods() {
 
 	BIND_THEME_ITEM(Theme::DATA_TYPE_STYLEBOX, Window, embedded_border);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_STYLEBOX, Window, embedded_unfocused_border);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_STYLEBOX, Window, embedded_bg);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_STYLEBOX, Window, embedded_unfocused_bg);
 
 	BIND_THEME_ITEM(Theme::DATA_TYPE_FONT, Window, title_font);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_FONT_SIZE, Window, title_font_size);
@@ -2967,9 +2982,12 @@ void Window::_bind_methods() {
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, title_height);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_COLOR, Window, title_outline_modulate);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, title_outline_size);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, center_title);
 
 	BIND_THEME_ITEM(Theme::DATA_TYPE_ICON, Window, close);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_ICON, Window, close_pressed);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_ICON, Window, controls_icon);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_ICON, Window, icon);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, close_h_offset);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, close_v_offset);
 

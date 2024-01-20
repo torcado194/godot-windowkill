@@ -445,6 +445,19 @@ int DisplayServer::get_screen_from_rect(const Rect2 &p_rect) const {
 	return pos_screen;
 }
 
+// int DisplayServer::get_screen_from_point(const Vector2 &p_point) const {
+// 	int pos_screen = -1;
+// 	for (int i = 0; i < get_screen_count(); i++) {
+// 		Rect2i r;
+// 		r.position = screen_get_position(i);
+// 		r.size = screen_get_size(i);
+// 		if (r.has_point(p_point)) {
+// 			return i;
+// 		}
+// 	}
+// 	return -1;
+// }
+
 DisplayServer::WindowID DisplayServer::create_sub_window(WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Rect2i &p_rect) {
 	ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Sub-windows not supported by this display server.");
 }
@@ -664,6 +677,10 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("tts_get_voices"), &DisplayServer::tts_get_voices);
 	ClassDB::bind_method(D_METHOD("tts_get_voices_for_language", "language"), &DisplayServer::tts_get_voices_for_language);
 
+	ClassDB::bind_method(D_METHOD("get_key_state"), &DisplayServer::get_key_state);
+	ClassDB::bind_method(D_METHOD("get_mouse_state"), &DisplayServer::get_mouse_state);
+	ClassDB::bind_method(D_METHOD("window_get_user_moving"), &DisplayServer::window_get_user_moving);
+
 	ClassDB::bind_method(D_METHOD("tts_speak", "text", "voice", "volume", "pitch", "rate", "utterance_id", "interrupt"), &DisplayServer::tts_speak, DEFVAL(50), DEFVAL(1.f), DEFVAL(1.f), DEFVAL(0), DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("tts_pause"), &DisplayServer::tts_pause);
 	ClassDB::bind_method(D_METHOD("tts_resume"), &DisplayServer::tts_resume);
@@ -755,6 +772,9 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("window_get_mode", "window_id"), &DisplayServer::window_get_mode, DEFVAL(MAIN_WINDOW_ID));
 	ClassDB::bind_method(D_METHOD("window_set_mode", "mode", "window_id"), &DisplayServer::window_set_mode, DEFVAL(MAIN_WINDOW_ID));
 
+	ClassDB::bind_method(D_METHOD("window_set_topmost", "window_id"), &DisplayServer::window_set_topmost, DEFVAL(MAIN_WINDOW_ID));
+	ClassDB::bind_method(D_METHOD("register_input_window", "window_id"), &DisplayServer::register_input_window, DEFVAL(MAIN_WINDOW_ID));
+
 	ClassDB::bind_method(D_METHOD("window_set_flag", "flag", "enabled", "window_id"), &DisplayServer::window_set_flag, DEFVAL(MAIN_WINDOW_ID));
 	ClassDB::bind_method(D_METHOD("window_get_flag", "flag", "window_id"), &DisplayServer::window_get_flag, DEFVAL(MAIN_WINDOW_ID));
 
@@ -791,6 +811,17 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("cursor_set_shape", "shape"), &DisplayServer::cursor_set_shape);
 	ClassDB::bind_method(D_METHOD("cursor_get_shape"), &DisplayServer::cursor_get_shape);
 	ClassDB::bind_method(D_METHOD("cursor_set_custom_image", "cursor", "shape", "hotspot"), &DisplayServer::cursor_set_custom_image, DEFVAL(CURSOR_ARROW), DEFVAL(Vector2()));
+
+	ClassDB::bind_method(D_METHOD("enable_multi_device"), &DisplayServer::enable_multi_device);
+	ClassDB::bind_method(D_METHOD("block_mm"), &DisplayServer::block_mm);
+	ClassDB::bind_method(D_METHOD("multi_cursor_get_count"), &DisplayServer::multi_cursor_get_count);
+	ClassDB::bind_method(D_METHOD("multi_cursor_get_position", "cursor_id"), &DisplayServer::multi_cursor_get_position, DEFVAL(0));
+	ClassDB::bind_method(D_METHOD("multi_cursor_set_position", "cursor_id", "position"), &DisplayServer::multi_cursor_set_position);
+	ClassDB::bind_method(D_METHOD("multi_cursor_event", "cursor_id", "flags"), &DisplayServer::multi_cursor_event);
+	ClassDB::bind_method(D_METHOD("multi_cursor_get_state", "cursor_id", "button"), &DisplayServer::multi_cursor_get_state);
+	ClassDB::bind_method(D_METHOD("multi_keyboard_get_count"), &DisplayServer::multi_keyboard_get_count);
+	ClassDB::bind_method(D_METHOD("multi_keyboard_get_state", "keyboard_id", "key"), &DisplayServer::multi_keyboard_get_state);
+	ClassDB::bind_method(D_METHOD("multi_keyboard_get_keys", "keyboard_id"), &DisplayServer::multi_keyboard_get_keys);
 
 	ClassDB::bind_method(D_METHOD("get_swap_cancel_ok"), &DisplayServer::get_swap_cancel_ok);
 

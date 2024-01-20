@@ -489,6 +489,7 @@ class DisplayServerWindows : public DisplayServer {
 	bool meta_mem = false;
 	BitField<MouseButtonMask> last_button_state;
 	bool use_raw_input = false;
+	bool use_multi_device = false;
 	WindowID keep_registered = -1;
 	bool drop_events = false;
 	bool in_dispatch_input_event = false;
@@ -662,6 +663,8 @@ public:
 	virtual CursorShape cursor_get_shape() const override;
 	virtual void cursor_set_custom_image(const Ref<Resource> &p_cursor, CursorShape p_shape = CURSOR_ARROW, const Vector2 &p_hotspot = Vector2()) override;
 
+	virtual void enable_multi_device(bool p_enable) override;
+	virtual void block_mm(WindowID p_window, bool p_enable) override;
 	virtual int multi_cursor_get_count() override;
 	virtual Vector2 multi_cursor_get_position(CursorID p_cursor = 0) override;
 	virtual void multi_cursor_set_position(CursorID p_cursor, Vector2 p_position) override;

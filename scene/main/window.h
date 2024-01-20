@@ -124,6 +124,7 @@ private:
 	mutable bool flags[FLAG_MAX] = {};
 	bool visible = true;
 	bool focused = false;
+	bool user_moving = false;
 	WindowInitialPosition initial_position = WINDOW_INITIAL_POSITION_ABSOLUTE;
 
 	bool use_font_oversampling = false;
@@ -201,6 +202,8 @@ private:
 	struct ThemeCache {
 		Ref<StyleBox> embedded_border;
 		Ref<StyleBox> embedded_unfocused_border;
+		Ref<StyleBox> embedded_bg;
+		Ref<StyleBox> embedded_unfocused_bg;
 
 		Ref<Font> title_font;
 		int title_font_size = 0;
@@ -208,9 +211,12 @@ private:
 		int title_height = 0;
 		Color title_outline_modulate;
 		int title_outline_size = 0;
+		int center_title = 0;
 
 		Ref<Texture2D> close;
 		Ref<Texture2D> close_pressed;
+		Ref<Texture2D> controls_icon;
+		Ref<Texture2D> icon;
 		int close_h_offset = 0;
 		int close_v_offset = 0;
 
@@ -300,6 +306,8 @@ public:
 
 	void request_attention();
 	void move_to_foreground();
+
+	bool get_user_moving() const;
 
 	virtual void set_visible(bool p_visible);
 	bool is_visible() const;

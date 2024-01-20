@@ -295,7 +295,7 @@ public:
 	virtual int get_screen_count() const = 0;
 	virtual int get_primary_screen() const = 0;
 	virtual int get_keyboard_focus_screen() const { return get_primary_screen(); }
-	virtual int get_screen_from_point(const Vector2 &p_point) const;
+	// virtual int get_screen_from_point(const Vector2 &p_point) const;
 	virtual int get_screen_from_rect(const Rect2 &p_rect) const;
 	virtual Point2i screen_get_position(int p_screen = SCREEN_OF_MAIN_WINDOW) const = 0;
 	virtual Size2i screen_get_size(int p_screen = SCREEN_OF_MAIN_WINDOW) const = 0;
@@ -512,6 +512,8 @@ public:
 	virtual CursorShape cursor_get_shape() const;
 	virtual void cursor_set_custom_image(const Ref<Resource> &p_cursor, CursorShape p_shape = CURSOR_ARROW, const Vector2 &p_hotspot = Vector2());
 
+	virtual void enable_multi_device(bool p_enable) { return; };
+	virtual void block_mm(WindowID p_window, bool p_enable) { return; };
 	virtual int multi_cursor_get_count() { return 0; };
 	virtual Vector2 multi_cursor_get_position(CursorID p_cursor = 0) { return Vector2(); };
 	virtual void multi_cursor_set_position(CursorID p_cursor, Vector2 p_position) { return; };

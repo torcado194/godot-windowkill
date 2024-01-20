@@ -321,6 +321,8 @@ void Viewport::_sub_window_update(Window *p_window) {
 	if (!p_window->get_flag(Window::FLAG_BORDERLESS)) {
 		Ref<StyleBox> panel = gui.subwindow_focused == p_window ? p_window->theme_cache.embedded_border : p_window->theme_cache.embedded_unfocused_border;
 		panel->draw(sw.canvas_item, r);
+		Ref<StyleBox> panel_bg = gui.subwindow_focused == p_window ? p_window->theme_cache.embedded_bg : p_window->theme_cache.embedded_unfocused_bg;
+		panel_bg->draw(sw.canvas_item, r);
 
 		// Draw the title bar text.
 		Ref<Font> title_font = p_window->theme_cache.title_font;
@@ -333,7 +335,8 @@ void Viewport::_sub_window_update(Window *p_window) {
 		TextLine title_text = TextLine(p_window->atr(p_window->get_title()), title_font, font_size);
 		title_text.set_width(r.size.width - panel->get_minimum_size().x - close_h_ofs);
 		title_text.set_direction(p_window->is_layout_rtl() ? TextServer::DIRECTION_RTL : TextServer::DIRECTION_LTR);
-		int x = (r.size.width - title_text.get_size().x) / 2;
+		// int x = (r.size.width - title_text.get_size().x) / 2;
+		int x = p_window->theme_cache.center_title ? (r.size.width - title_text.get_size().x) / 2 : 32.0;
 		int y = (-title_height - title_text.get_size().y) / 2;
 
 		Color font_outline_color = p_window->theme_cache.title_outline_modulate;
@@ -343,9 +346,15 @@ void Viewport::_sub_window_update(Window *p_window) {
 		}
 		title_text.draw(sw.canvas_item, r.position + Point2(x, y), title_color);
 
+		Ref<Texture2D> controls_icon = p_window->theme_cache.controls_icon;
+		controls_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_h_ofs - controls_icon->get_size().x, -close_v_ofs));
+
 		bool pressed = gui.subwindow_focused == sw.window && gui.subwindow_drag == SUB_WINDOW_DRAG_CLOSE && gui.subwindow_drag_close_inside;
 		Ref<Texture2D> close_icon = pressed ? p_window->theme_cache.close_pressed : p_window->theme_cache.close;
-		close_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_h_ofs, -close_v_ofs));
+		close_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_h_ofs - close_icon->get_size().x, -close_v_ofs));
+
+		Ref<Texture2D> icon = p_window->theme_cache.icon;
+		icon->draw(sw.canvas_item, r.position + Vector2(0, -close_v_ofs));
 	}
 
 	RS::get_singleton()->canvas_item_add_texture_rect(sw.canvas_item, r, sw.window->get_texture()->get_rid());
@@ -1044,6 +1053,10 @@ Rect2 Viewport::get_visible_rect() const {
 
 	if (size_2d_override != Size2i()) {
 		r.size = size_2d_override;
+	}
+
+	if (is_embedding_subwindows()) {
+		r.position = get_base_window()->position;
 	}
 
 	return r;
@@ -2846,6 +2859,7 @@ bool Viewport::_sub_windows_forward_input(const Ref<InputEvent> &p_event) {
 			}
 			gui.subwindow_drag = SUB_WINDOW_DRAG_DISABLED;
 			if (gui.currently_dragged_subwindow != nullptr) { // May have been erased.
+				gui.currently_dragged_subwindow->user_moving = false;
 				_sub_window_update(gui.currently_dragged_subwindow);
 				gui.currently_dragged_subwindow = nullptr;
 			}
@@ -2985,7 +2999,7 @@ bool Viewport::_sub_windows_forward_input(const Ref<InputEvent> &p_event) {
 					Ref<Texture2D> close_icon = sw.window->theme_cache.close;
 
 					Rect2 close_rect;
-					close_rect.position = Vector2(r.position.x + r.size.x - close_h_ofs, r.position.y - close_v_ofs);
+					close_rect.position = Vector2(r.position.x + r.size.x - close_h_ofs - close_icon->get_size().x, r.position.y - close_v_ofs);
 					close_rect.size = close_icon->get_size();
 
 					if (gui.subwindow_focused != sw.window) {
@@ -2999,6 +3013,7 @@ bool Viewport::_sub_windows_forward_input(const Ref<InputEvent> &p_event) {
 						gui.subwindow_drag_close_rect = close_rect;
 					} else {
 						gui.subwindow_drag = SUB_WINDOW_DRAG_MOVE;
+						click_on_window->user_moving = true;
 					}
 
 					gui.subwindow_drag_from = mb->get_position();
@@ -3017,6 +3032,7 @@ bool Viewport::_sub_windows_forward_input(const Ref<InputEvent> &p_event) {
 						gui.subwindow_drag_from = mb->get_position();
 						gui.subwindow_drag = SUB_WINDOW_DRAG_RESIZE;
 						click_on_window = sw.window;
+						click_on_window->user_moving = true;
 					}
 				}
 			}

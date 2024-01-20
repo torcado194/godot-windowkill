@@ -228,10 +228,10 @@ void DisplayServerWindows::register_input_window(WindowID p_window) {
 void DisplayServerWindows::_register_raw_input_devices(WindowID p_target_window) {
 	use_raw_input = true;
 
-	if(keep_registered >= 0){
-		register_input_window(keep_registered);
-		return;
-	}
+	// if(keep_registered >= 0){
+	// 	register_input_window(keep_registered);
+	// 	return;
+	// }
 
 	RAWINPUTDEVICE rid[2] = {};
 	rid[0].usUsagePage = 0x01;
@@ -732,21 +732,29 @@ static BOOL CALLBACK _MonitorEnumProcOrigin(HMONITOR hMonitor, HDC hdcMonitor, L
 	return TRUE;
 }
 
+Point2i screens_origin = Point2i(-9999,-9999);
 Point2i DisplayServerWindows::_get_screens_origin() const {
 	_THREAD_SAFE_METHOD_
 
-	EnumPosData data = { 0, 0, Point2() };
-	EnumDisplayMonitors(nullptr, nullptr, _MonitorEnumProcOrigin, (LPARAM)&data);
-	return data.pos;
+	if(screens_origin == Point2i(-9999,-9999)){
+		EnumPosData data = { 0, 0, Point2() };
+		EnumDisplayMonitors(nullptr, nullptr, _MonitorEnumProcOrigin, (LPARAM)&data);
+		screens_origin = data.pos;
+	}
+	return screens_origin;
 }
 
+HashMap<int, Point2i> screen_positions;
 Point2i DisplayServerWindows::screen_get_position(int p_screen) const {
 	_THREAD_SAFE_METHOD_
 
-	p_screen = _get_screen_index(p_screen);
-	EnumPosData data = { 0, p_screen, Point2() };
-	EnumDisplayMonitors(nullptr, nullptr, _MonitorEnumProcPos, (LPARAM)&data);
-	return data.pos - _get_screens_origin();
+	if(!screen_positions.has(p_screen)){
+		p_screen = _get_screen_index(p_screen);
+		EnumPosData data = { 0, p_screen, Point2() };
+		EnumDisplayMonitors(nullptr, nullptr, _MonitorEnumProcPos, (LPARAM)&data);
+		screen_positions[p_screen] = (p_screen, data.pos - _get_screens_origin());
+	}
+	return screen_positions.get(p_screen);
 }
 
 typedef struct {
@@ -1679,17 +1687,17 @@ void DisplayServerWindows::window_set_size(const Size2i p_size, WindowID p_windo
 	// }
 #endif
 #if defined(D3D12_ENABLED)
-	if (context_d3d12) {
-		context_d3d12->window_resize(p_window, w, h);
-	}
+	// if (context_d3d12) {
+	// 	context_d3d12->window_resize(p_window, w, h);
+	// }
 #endif
 #if defined(GLES3_ENABLED)
-	if (gl_manager_native) {
-		gl_manager_native->window_resize(p_window, w, h);
-	}
-	if (gl_manager_angle) {
-		gl_manager_angle->window_resize(p_window, w, h);
-	}
+	// if (gl_manager_native) {
+	// 	gl_manager_native->window_resize(p_window, w, h);
+	// }
+	// if (gl_manager_angle) {
+	// 	gl_manager_angle->window_resize(p_window, w, h);
+	// }
 #endif
 
 	RECT rect;
@@ -2056,9 +2064,11 @@ void DisplayServerWindows::window_move_to_foreground(WindowID p_window) {
 	ERR_FAIL_COND(!windows.has(p_window));
 	WindowData &wd = windows[p_window];
 
-	if (!wd.no_focus && !wd.is_popup) {
-		SetForegroundWindow(wd.hWnd);
-	}
+	// if (!wd.no_focus && !wd.is_popup) {
+	// 	SetForegroundWindow(wd.hWnd);
+	// }
+
+	SetWindowPos(wd.hWnd, HWND_TOP, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
 bool DisplayServerWindows::window_is_focused(WindowID p_window) const {
@@ -2382,6 +2392,18 @@ void DisplayServerWindows::multi_cursor_set_position(CursorID p_cursor, Vector2 
 
 	ERR_FAIL_COND(!cust_cursors.has(p_cursor));
 	cust_cursors[p_cursor].pos = p_position;
+}
+
+void DisplayServerWindows::enable_multi_device(bool p_enable = true) {
+	_THREAD_SAFE_METHOD_
+
+	use_multi_device = p_enable;
+}
+
+void DisplayServerWindows::block_mm(WindowID p_window, bool p_enable = true) {
+	_THREAD_SAFE_METHOD_
+
+	windows[p_window].block_mm = p_enable;
 }
 
 void DisplayServerWindows::multi_cursor_event(CursorID p_cursor, int flags) {
@@ -3412,9 +3434,9 @@ LRESULT DisplayServerWindows::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 		} break;
 		case WM_INPUT: {
-			// if (mouse_mode != MOUSE_MODE_CAPTURED || !use_raw_input) {
-			// 	break;
-			// }
+			if (!use_multi_device && (mouse_mode != MOUSE_MODE_CAPTURED || !use_raw_input)) {
+				break;
+			}
 
 			UINT dwSize;
 
