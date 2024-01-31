@@ -521,7 +521,7 @@ public:
 	virtual bool multi_cursor_get_state(CursorID p_cursor, int button) { return false; };
 	virtual int multi_keyboard_get_count() { return 0; };
 	virtual bool multi_keyboard_get_state(KeyboardID p_keyboard, Key key) { return false; };
-	virtual TypedArray<int> multi_keyboard_get_keys(KeyboardID p_keyboard) { return false; };
+	virtual TypedArray<int> multi_keyboard_get_keys(KeyboardID p_keyboard) { return TypedArray<int>(); };
 
 	virtual bool get_swap_cancel_ok();
 

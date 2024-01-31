@@ -360,6 +360,16 @@ void Viewport::_sub_window_update(Window *p_window) {
 	RS::get_singleton()->canvas_item_add_texture_rect(sw.canvas_item, r, sw.window->get_texture()->get_rid());
 }
 
+void Viewport::_sub_window_move_to_foreground(Window *p_window) {
+	int index = _sub_window_find(p_window);
+	ERR_FAIL_COND(index == -1);
+
+	SubWindow sw = gui.sub_windows[index];
+	gui.sub_windows.remove_at(index);
+	gui.sub_windows.push_back(sw);
+	_sub_window_update_order();
+}
+
 void Viewport::_sub_window_grab_focus(Window *p_window) {
 	if (p_window == nullptr) {
 		// Release current focus.
