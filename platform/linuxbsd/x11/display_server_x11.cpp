@@ -2109,7 +2109,7 @@ Point2i DisplayServerX11::window_get_position_with_decorations(WindowID p_window
 	return Size2i(x, y);
 }
 
-void DisplayServerX11::window_set_rect(const Point2i &p_position, WindowID p_window) {
+void DisplayServerX11::window_set_rect(const Rect2i p_rect, WindowID p_window) {
 	_THREAD_SAFE_METHOD_
 
 	ERR_FAIL_COND(!windows.has(p_window));
@@ -2137,13 +2137,13 @@ void DisplayServerX11::window_set_rect(const Point2i &p_position, WindowID p_win
 			}
 		}
 	}
-	XMoveWindow(x11_display, wd.x11_window, p_position.x - x, p_position.y - y);
+	XMoveWindow(x11_display, wd.x11_window, p_rect.position.x - x, p_rect.position.y - y);
 
-	Size2i size = p_size;
+	Size2i size = p_rect.size;
 	size.x = MAX(1, size.x);
 	size.y = MAX(1, size.y);
 
-	WindowData &wd = windows[p_window];
+	// WindowData &wd = windows[p_window];
 
 	if (wd.size.width == size.width && wd.size.height == size.height) {
 		return;
@@ -2164,16 +2164,18 @@ void DisplayServerX11::window_set_rect(const Point2i &p_position, WindowID p_win
 	// Resize the window
 	XResizeWindow(x11_display, wd.x11_window, size.x, size.y);
 
-	for (int timeout = 0; timeout < 50; ++timeout) {
-		XSync(x11_display, False);
-		XGetWindowAttributes(x11_display, wd.x11_window, &xwa);
+	//TORC ???
 
-		if (old_w != xwa.width || old_h != xwa.height) {
-			break;
-		}
+	// for (int timeout = 0; timeout < 50; ++timeout) {
+	// 	XSync(x11_display, False);
+	// 	XGetWindowAttributes(x11_display, wd.x11_window, &xwa);
 
-		usleep(10000);
-	}
+	// 	if (old_w != xwa.width || old_h != xwa.height) {
+	// 		break;
+	// 	}
+
+	// 	usleep(10000);
+	// }
 
 	// Keep rendering context window size in sync
 // #if defined(VULKAN_ENABLED)

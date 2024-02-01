@@ -463,6 +463,8 @@ public:
 	virtual Point2i window_get_position_with_decorations(WindowID p_window = MAIN_WINDOW_ID) const override;
 	virtual void window_set_position(const Point2i &p_position, WindowID p_window = MAIN_WINDOW_ID) override;
 
+	virtual void window_set_rect(const Rect2i p_rect, WindowID p_window = MAIN_WINDOW_ID) override;
+
 	virtual void window_set_max_size(const Size2i p_size, WindowID p_window = MAIN_WINDOW_ID) override;
 	virtual Size2i window_get_max_size(WindowID p_window = MAIN_WINDOW_ID) const override;
 	virtual void gl_window_make_current(DisplayServer::WindowID p_window_id) override;
