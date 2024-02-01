@@ -2109,6 +2109,90 @@ Point2i DisplayServerX11::window_get_position_with_decorations(WindowID p_window
 	return Size2i(x, y);
 }
 
+void DisplayServerX11::window_set_rect(const Point2i &p_position, WindowID p_window) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND(!windows.has(p_window));
+	WindowData &wd = windows[p_window];
+
+	int x = 0;
+	int y = 0;
+	if (!window_get_flag(WINDOW_FLAG_BORDERLESS, p_window)) {
+		//exclude window decorations
+		XSync(x11_display, False);
+		Atom prop = XInternAtom(x11_display, "_NET_FRAME_EXTENTS", True);
+		if (prop != None) {
+			Atom type;
+			int format;
+			unsigned long len;
+			unsigned long remaining;
+			unsigned char *data = nullptr;
+			if (XGetWindowProperty(x11_display, wd.x11_window, prop, 0, 4, False, AnyPropertyType, &type, &format, &len, &remaining, &data) == Success) {
+				if (format == 32 && len == 4 && data) {
+					long *extents = (long *)data;
+					x = extents[0];
+					y = extents[2];
+				}
+				XFree(data);
+			}
+		}
+	}
+	XMoveWindow(x11_display, wd.x11_window, p_position.x - x, p_position.y - y);
+
+	Size2i size = p_size;
+	size.x = MAX(1, size.x);
+	size.y = MAX(1, size.y);
+
+	WindowData &wd = windows[p_window];
+
+	if (wd.size.width == size.width && wd.size.height == size.height) {
+		return;
+	}
+
+	XWindowAttributes xwa;
+	XSync(x11_display, False);
+	XGetWindowAttributes(x11_display, wd.x11_window, &xwa);
+	int old_w = xwa.width;
+	int old_h = xwa.height;
+
+	// Update our videomode width and height
+	wd.size = size;
+
+	// Update the size hints first to make sure the window size can be set
+	_update_size_hints(p_window);
+
+	// Resize the window
+	XResizeWindow(x11_display, wd.x11_window, size.x, size.y);
+
+	for (int timeout = 0; timeout < 50; ++timeout) {
+		XSync(x11_display, False);
+		XGetWindowAttributes(x11_display, wd.x11_window, &xwa);
+
+		if (old_w != xwa.width || old_h != xwa.height) {
+			break;
+		}
+
+		usleep(10000);
+	}
+
+	// Keep rendering context window size in sync
+// #if defined(VULKAN_ENABLED)
+// 	if (context_vulkan) {
+// 		context_vulkan->window_resize(p_window, xwa.width, xwa.height);
+// 	}
+// #endif
+// #if defined(GLES3_ENABLED)
+// 	if (gl_manager) {
+// 		gl_manager->window_resize(p_window, xwa.width, xwa.height);
+// 	}
+// 	if (gl_manager_egl) {
+// 		gl_manager_egl->window_resize(p_window, xwa.width, xwa.height);
+// 	}
+// #endif
+
+	_update_real_mouse_position(wd);
+}
+
 void DisplayServerX11::window_set_position(const Point2i &p_position, WindowID p_window) {
 	_THREAD_SAFE_METHOD_
 
@@ -2221,31 +2305,33 @@ void DisplayServerX11::window_set_size(const Size2i p_size, WindowID p_window) {
 	// Resize the window
 	XResizeWindow(x11_display, wd.x11_window, size.x, size.y);
 
-	for (int timeout = 0; timeout < 50; ++timeout) {
-		XSync(x11_display, False);
-		XGetWindowAttributes(x11_display, wd.x11_window, &xwa);
+	//TORC: ????
 
-		if (old_w != xwa.width || old_h != xwa.height) {
-			break;
-		}
+	// for (int timeout = 0; timeout < 50; ++timeout) {
+	// 	XSync(x11_display, False);
+	// 	XGetWindowAttributes(x11_display, wd.x11_window, &xwa);
 
-		usleep(10000);
-	}
+	// 	if (old_w != xwa.width || old_h != xwa.height) {
+	// 		break;
+	// 	}
+
+	// 	usleep(10000);
+	// }
 
 	// Keep rendering context window size in sync
-#if defined(VULKAN_ENABLED)
-	if (context_vulkan) {
-		context_vulkan->window_resize(p_window, xwa.width, xwa.height);
-	}
-#endif
-#if defined(GLES3_ENABLED)
-	if (gl_manager) {
-		gl_manager->window_resize(p_window, xwa.width, xwa.height);
-	}
-	if (gl_manager_egl) {
-		gl_manager_egl->window_resize(p_window, xwa.width, xwa.height);
-	}
-#endif
+// #if defined(VULKAN_ENABLED)
+// 	if (context_vulkan) {
+// 		context_vulkan->window_resize(p_window, xwa.width, xwa.height);
+// 	}
+// #endif
+// #if defined(GLES3_ENABLED)
+// 	if (gl_manager) {
+// 		gl_manager->window_resize(p_window, xwa.width, xwa.height);
+// 	}
+// 	if (gl_manager_egl) {
+// 		gl_manager_egl->window_resize(p_window, xwa.width, xwa.height);
+// 	}
+// #endif
 }
 
 Size2i DisplayServerX11::window_get_size(WindowID p_window) const {
@@ -2876,18 +2962,19 @@ void DisplayServerX11::window_move_to_foreground(WindowID p_window) {
 	ERR_FAIL_COND(!windows.has(p_window));
 	const WindowData &wd = windows[p_window];
 
-	XEvent xev;
-	Atom net_active_window = XInternAtom(x11_display, "_NET_ACTIVE_WINDOW", False);
+	// XEvent xev;
+	// Atom net_active_window = XInternAtom(x11_display, "_NET_ACTIVE_WINDOW", False);
 
-	memset(&xev, 0, sizeof(xev));
-	xev.type = ClientMessage;
-	xev.xclient.window = wd.x11_window;
-	xev.xclient.message_type = net_active_window;
-	xev.xclient.format = 32;
-	xev.xclient.data.l[0] = 1;
-	xev.xclient.data.l[1] = CurrentTime;
+	// memset(&xev, 0, sizeof(xev));
+	// xev.type = ClientMessage;
+	// xev.xclient.window = wd.x11_window;
+	// xev.xclient.message_type = net_active_window;
+	// xev.xclient.format = 32;
+	// xev.xclient.data.l[0] = 1;
+	// xev.xclient.data.l[1] = CurrentTime;
 
-	XSendEvent(x11_display, DefaultRootWindow(x11_display), False, SubstructureRedirectMask | SubstructureNotifyMask, &xev);
+	// XSendEvent(x11_display, DefaultRootWindow(x11_display), False, SubstructureRedirectMask, &xev);
+	XRaiseWindow(x11_display, wd.x11_window);
 	XFlush(x11_display);
 }
 
@@ -4499,12 +4586,13 @@ void DisplayServerX11::process_events() {
 				// Set focus when menu window is started.
 				// RevertToPointerRoot is used to make sure we don't lose all focus in case
 				// a subwindow and its parent are both destroyed.
-				if ((xwa.map_state == IsViewable) && !wd.no_focus && !wd.is_popup) {
-					XSetInputFocus(x11_display, wd.x11_window, RevertToPointerRoot, CurrentTime);
-				}
+				//TORC: disable?
+				// if ((xwa.map_state == IsViewable) && !wd.no_focus && !wd.is_popup) {
+				// 	XSetInputFocus(x11_display, wd.x11_window, RevertToPointerRoot, CurrentTime);
+				// }
 
 				// Have we failed to set fullscreen while the window was unmapped?
-				_validate_mode_on_map(window_id);
+				// _validate_mode_on_map(window_id);
 			} break;
 
 			case Expose: {
