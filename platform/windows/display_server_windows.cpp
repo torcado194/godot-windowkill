@@ -259,6 +259,16 @@ void DisplayServerWindows::_register_raw_input_devices(WindowID p_target_window)
 	
 }
 
+void DisplayServerWindows::set_wallpaper(const String &p_path) {
+	// IDesktopWallpaper::SetWallpaper(0);
+	const CharString path = p_path.utf8();
+	LPVOID p = (LPVOID)(path.ptr());
+	
+	SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, p, SPIF_UPDATEINIFILE);
+	return;
+}
+
+
 bool DisplayServerWindows::tts_is_speaking() const {
 	ERR_FAIL_NULL_V_MSG(tts, false, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
 	return tts->is_speaking();
@@ -492,7 +502,7 @@ void DisplayServerWindows::warp_mouse(const Point2i &p_position) {
 		POINT p;
 		p.x = p_position.x;
 		p.y = p_position.y;
-		ClientToScreen(windows[window_id].hWnd, &p);
+		// ClientToScreen(windows[window_id].hWnd, &p);
 
 		SetCursorPos(p.x, p.y);
 	}
@@ -1745,7 +1755,7 @@ Size2i DisplayServerWindows::window_get_size_with_decorations(WindowID p_window)
 	return Size2();
 }
 
-void DisplayServerWindows::_get_window_style(bool p_main_window, bool p_fullscreen, bool p_multiwindow_fs, bool p_borderless, bool p_resizable, bool p_minimizable, bool p_maximized, bool p_no_activate_focus, DWORD &r_style, DWORD &r_style_ex) {
+void DisplayServerWindows::_get_window_style(bool p_main_window, bool p_fullscreen, bool p_multiwindow_fs, bool p_borderless, bool p_resizable, bool p_minimizable, bool p_maximized, bool p_no_activate_focus, bool p_mouse_passthrough, DWORD &r_style, DWORD &r_style_ex) {
 	// Windows docs for window styles:
 	// https://docs.microsoft.com/en-us/windows/win32/winmsg/window-styles
 	// https://docs.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles
@@ -1784,6 +1794,10 @@ void DisplayServerWindows::_get_window_style(bool p_main_window, bool p_fullscre
 		r_style |= WS_VISIBLE;
 	}
 
+	if (p_mouse_passthrough) {
+		r_style_ex |= WS_EX_TRANSPARENT | WS_EX_LAYERED;
+	}
+
 	r_style |= WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 	r_style_ex |= WS_EX_ACCEPTFILES;
 }
@@ -1797,7 +1811,7 @@ void DisplayServerWindows::_update_window_style(WindowID p_window, bool p_repain
 	DWORD style = 0;
 	DWORD style_ex = 0;
 
-	_get_window_style(p_window == MAIN_WINDOW_ID, wd.fullscreen, wd.multiwindow_fs, wd.borderless, wd.resizable, wd.minimizable, wd.maximized, wd.no_focus || wd.is_popup, style, style_ex);
+	_get_window_style(p_window == MAIN_WINDOW_ID, wd.fullscreen, wd.multiwindow_fs, wd.borderless, wd.resizable, wd.minimizable, wd.maximized, wd.no_focus || wd.is_popup, wd.mpass, style, style_ex);
 
 	SetWindowLongPtr(wd.hWnd, GWL_STYLE, style);
 	SetWindowLongPtr(wd.hWnd, GWL_EXSTYLE, style_ex);
@@ -2071,6 +2085,17 @@ void DisplayServerWindows::window_move_to_foreground(WindowID p_window) {
 	SetWindowPos(wd.hWnd, HWND_TOP, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
+void DisplayServerWindows::window_grab_focus(WindowID p_window) {
+	_THREAD_SAFE_METHOD_
+
+	ERR_FAIL_COND(!windows.has(p_window));
+	WindowData &wd = windows[p_window];
+
+	if (!wd.no_focus && !wd.is_popup) {
+		SetForegroundWindow(wd.hWnd);
+	}
+}
+
 bool DisplayServerWindows::window_is_focused(WindowID p_window) const {
 	_THREAD_SAFE_METHOD_
 
@@ -2190,6 +2215,40 @@ void DisplayServerWindows::window_set_ime_position(const Point2i &p_pos, WindowI
 	ImmSetCompositionWindow(himc, &cps);
 	ImmReleaseContext(wd.hWnd, himc);
 }
+
+
+static BOOL CALLBACK enumWindowCallback(HWND hWnd, LPARAM lparam) {
+	Dictionary _window_data = *((Dictionary*)lparam);
+	// int length = GetWindowTextLength(hWnd);
+    // char* buffer = new char[length + 1];
+    // GetWindowText(hWnd, buffer, length + 1);
+    // String title = String(buffer);
+	DWORD dwStyle = GetWindowLong(hWnd, GWL_STYLE);
+	DWORD dwExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+	if (IsWindowVisible(hWnd)) {
+		Dictionary d;
+		// d["title"] = title;
+		RECT rect;
+		GetWindowRect(hWnd, &rect);
+		d["rect"] = Rect2i(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+		d["style"] = int(dwStyle);
+		d["exStyle"] = int(dwExStyle);
+		_window_data[PtrToInt(hWnd)] = d;
+		// WARN_PRINT(itos(PtrToInt(hWnd)));
+    }
+	return TRUE;
+};
+Dictionary DisplayServerWindows::get_all_window_data() {
+	Dictionary _window_data = Dictionary();
+	EnumWindows(enumWindowCallback, (LPARAM)&_window_data);
+	return _window_data;
+}
+
+// Rect2i DisplayServerWindows::window_handle_get_rect(int p_handle) {
+// 	RECT rect;
+// 	GetWindowRect((HWND)IntToPtr(p_handle), &rect);
+// 	return Rect2i(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+// }
 
 void DisplayServerWindows::cursor_set_shape(CursorShape p_shape) {
 	_THREAD_SAFE_METHOD_
@@ -4732,7 +4791,7 @@ DisplayServer::WindowID DisplayServerWindows::_create_window(WindowMode p_mode, 
 	DWORD dwExStyle;
 	DWORD dwStyle;
 
-	_get_window_style(window_id_counter == MAIN_WINDOW_ID, (p_mode == WINDOW_MODE_FULLSCREEN || p_mode == WINDOW_MODE_EXCLUSIVE_FULLSCREEN), p_mode != WINDOW_MODE_EXCLUSIVE_FULLSCREEN, p_flags & WINDOW_FLAG_BORDERLESS_BIT, !(p_flags & WINDOW_FLAG_RESIZE_DISABLED_BIT), !(p_flags & WINDOW_FLAG_MINIMIZE_DISABLED_BIT), p_mode == WINDOW_MODE_MAXIMIZED, (p_flags & WINDOW_FLAG_NO_FOCUS_BIT) | (p_flags & WINDOW_FLAG_POPUP), dwStyle, dwExStyle);
+	_get_window_style(window_id_counter == MAIN_WINDOW_ID, (p_mode == WINDOW_MODE_FULLSCREEN || p_mode == WINDOW_MODE_EXCLUSIVE_FULLSCREEN), p_mode != WINDOW_MODE_EXCLUSIVE_FULLSCREEN, p_flags & WINDOW_FLAG_BORDERLESS_BIT, !(p_flags & WINDOW_FLAG_RESIZE_DISABLED_BIT), !(p_flags & WINDOW_FLAG_MINIMIZE_DISABLED_BIT), p_mode == WINDOW_MODE_MAXIMIZED, (p_flags & WINDOW_FLAG_NO_FOCUS_BIT) | (p_flags & WINDOW_FLAG_POPUP), false, dwStyle, dwExStyle);
 
 	RECT WindowRect;
 

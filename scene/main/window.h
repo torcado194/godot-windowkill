@@ -219,6 +219,9 @@ private:
 		Ref<Texture2D> icon;
 		int close_h_offset = 0;
 		int close_v_offset = 0;
+		int close_expand = 0;
+		int icon_h_offset = 0;
+		int icon_v_offset = 0;
 
 		int resize_margin = 0;
 	} theme_cache;

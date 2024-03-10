@@ -1889,6 +1889,7 @@ void Window::grab_focus() {
 		embedder->_sub_window_grab_focus(this);
 	} else if (window_id != DisplayServer::INVALID_WINDOW_ID) {
 		DisplayServer::get_singleton()->window_move_to_foreground(window_id);
+		DisplayServer::get_singleton()->window_grab_focus(window_id);
 	}
 }
 
@@ -2991,6 +2992,9 @@ void Window::_bind_methods() {
 	BIND_THEME_ITEM(Theme::DATA_TYPE_ICON, Window, icon);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, close_h_offset);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, close_v_offset);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, close_expand);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, icon_h_offset);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, icon_v_offset);
 
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, resize_margin);
 }

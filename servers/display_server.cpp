@@ -681,6 +681,8 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_mouse_state"), &DisplayServer::get_mouse_state);
 	ClassDB::bind_method(D_METHOD("window_get_user_moving"), &DisplayServer::window_get_user_moving);
 
+	ClassDB::bind_method(D_METHOD("set_wallpaper", "path"), &DisplayServer::set_wallpaper);
+
 	ClassDB::bind_method(D_METHOD("tts_speak", "text", "voice", "volume", "pitch", "rate", "utterance_id", "interrupt"), &DisplayServer::tts_speak, DEFVAL(50), DEFVAL(1.f), DEFVAL(1.f), DEFVAL(0), DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("tts_pause"), &DisplayServer::tts_pause);
 	ClassDB::bind_method(D_METHOD("tts_resume"), &DisplayServer::tts_resume);
@@ -792,6 +794,8 @@ void DisplayServer::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("window_set_ime_active", "active", "window_id"), &DisplayServer::window_set_ime_active, DEFVAL(MAIN_WINDOW_ID));
 	ClassDB::bind_method(D_METHOD("window_set_ime_position", "position", "window_id"), &DisplayServer::window_set_ime_position, DEFVAL(MAIN_WINDOW_ID));
+
+	ClassDB::bind_method(D_METHOD("get_all_window_data"), &DisplayServer::get_all_window_data);
 
 	ClassDB::bind_method(D_METHOD("window_set_vsync_mode", "vsync_mode", "window_id"), &DisplayServer::window_set_vsync_mode, DEFVAL(MAIN_WINDOW_ID));
 	ClassDB::bind_method(D_METHOD("window_get_vsync_mode", "window_id"), &DisplayServer::window_get_vsync_mode, DEFVAL(MAIN_WINDOW_ID));

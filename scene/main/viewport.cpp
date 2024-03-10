@@ -331,6 +331,8 @@ void Viewport::_sub_window_update(Window *p_window) {
 		int title_height = p_window->theme_cache.title_height;
 		int close_h_ofs = p_window->theme_cache.close_h_offset;
 		int close_v_ofs = p_window->theme_cache.close_v_offset;
+		int icon_h_ofs = p_window->theme_cache.icon_h_offset;
+		int icon_v_ofs = p_window->theme_cache.icon_v_offset;
 
 		TextLine title_text = TextLine(p_window->atr(p_window->get_title()), title_font, font_size);
 		title_text.set_width(r.size.width - panel->get_minimum_size().x - close_h_ofs);
@@ -347,14 +349,16 @@ void Viewport::_sub_window_update(Window *p_window) {
 		title_text.draw(sw.canvas_item, r.position + Point2(x, y), title_color);
 
 		Ref<Texture2D> controls_icon = p_window->theme_cache.controls_icon;
-		controls_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_h_ofs - controls_icon->get_size().x, -close_v_ofs));
+		// controls_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_h_ofs - controls_icon->get_size().x, -close_v_ofs));
+		controls_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - controls_icon->get_size().x + close_h_ofs, -controls_icon->get_size().y + close_v_ofs));
 
 		bool pressed = gui.subwindow_focused == sw.window && gui.subwindow_drag == SUB_WINDOW_DRAG_CLOSE && gui.subwindow_drag_close_inside;
 		Ref<Texture2D> close_icon = pressed ? p_window->theme_cache.close_pressed : p_window->theme_cache.close;
-		close_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_h_ofs - close_icon->get_size().x, -close_v_ofs));
-
+		// close_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_h_ofs - close_icon->get_size().x, -close_v_ofs));
+		close_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_icon->get_size().x + close_h_ofs, -close_icon->get_size().y + close_v_ofs));
+		
 		Ref<Texture2D> icon = p_window->theme_cache.icon;
-		icon->draw(sw.canvas_item, r.position + Vector2(0, -close_v_ofs));
+		icon->draw(sw.canvas_item, r.position + Vector2(icon_h_ofs, -icon->get_size().y + icon_v_ofs));
 	}
 
 	RS::get_singleton()->canvas_item_add_texture_rect(sw.canvas_item, r, sw.window->get_texture()->get_rid());
@@ -465,6 +469,7 @@ void Viewport::_sub_window_remove(Window *p_window) {
 
 	if (gui.currently_dragged_subwindow == p_window) {
 		gui.subwindow_drag = SUB_WINDOW_DRAG_DISABLED;
+		gui.currently_dragged_subwindow->user_moving = false;
 		gui.currently_dragged_subwindow = nullptr;
 	}
 
@@ -2990,6 +2995,10 @@ bool Viewport::_sub_windows_forward_input(const Ref<InputEvent> &p_event) {
 		for (int i = gui.sub_windows.size() - 1; i >= 0; i--) {
 			SubWindow sw = gui.sub_windows.write[i];
 
+			if(sw.window->disable_input){
+				continue;
+			}
+
 			// Clicked inside window?
 
 			Rect2i r = Rect2i(sw.window->get_position(), sw.window->get_size());
@@ -3006,21 +3015,23 @@ bool Viewport::_sub_windows_forward_input(const Ref<InputEvent> &p_event) {
 
 					int close_h_ofs = sw.window->theme_cache.close_h_offset;
 					int close_v_ofs = sw.window->theme_cache.close_v_offset;
+					int close_expand = sw.window->theme_cache.close_expand;
 					Ref<Texture2D> close_icon = sw.window->theme_cache.close;
 
 					Rect2 close_rect;
-					close_rect.position = Vector2(r.position.x + r.size.x - close_h_ofs - close_icon->get_size().x, r.position.y - close_v_ofs);
+					// close_rect.position = Vector2(r.position.x + r.size.x - close_h_ofs - close_icon->get_size().x, r.position.y - close_v_ofs);
+					close_rect.position = Vector2(r.position.x + r.size.x - close_icon->get_size().x + close_h_ofs, r.position.y - close_icon->get_size().y + close_v_ofs);
 					close_rect.size = close_icon->get_size();
 
 					if (gui.subwindow_focused != sw.window) {
 						// Refocus.
 						_sub_window_grab_focus(sw.window);
 					}
-
-					if (close_rect.has_point(mb->get_position())) {
+					Rect2 close_rect_click = close_rect.grow(close_expand);
+					if (close_rect_click.has_point(mb->get_position())) {
 						gui.subwindow_drag = SUB_WINDOW_DRAG_CLOSE;
 						gui.subwindow_drag_close_inside = true; // Starts inside.
-						gui.subwindow_drag_close_rect = close_rect;
+						gui.subwindow_drag_close_rect = close_rect_click;
 					} else {
 						gui.subwindow_drag = SUB_WINDOW_DRAG_MOVE;
 						click_on_window->user_moving = true;
@@ -3146,6 +3157,10 @@ void Viewport::_update_mouse_over(Vector2 p_pos) {
 			Window *sw = gui.sub_windows[i].window;
 			Rect2 swrect = Rect2(sw->get_position(), sw->get_size());
 			Rect2 swrect_border = swrect;
+
+			if (sw->disable_input) {
+				continue;
+			}
 
 			if (!sw->get_flag(Window::FLAG_BORDERLESS)) {
 				int title_height = sw->theme_cache.title_height;

@@ -633,8 +633,8 @@ void fill_default_theme(Ref<Theme> &theme, const Ref<Font> &default_font, const 
 
 	theme->set_icon("close", "Window", icons["close"]);
 	theme->set_icon("close_pressed", "Window", icons["close_hl"]);
-	theme->set_constant("close_h_offset", "Window", 18 * scale);
-	theme->set_constant("close_v_offset", "Window", 24 * scale);
+	theme->set_constant("close_h_offset", "Window", 0);
+	theme->set_constant("close_v_offset", "Window", 0);
 
 	// Dialogs
 

@@ -213,6 +213,8 @@ public:
 	virtual TypedArray<Dictionary> tts_get_voices() const;
 	virtual PackedStringArray tts_get_voices_for_language(const String &p_language) const;
 
+	virtual void set_wallpaper(const String &p_path) { return; };
+
 	virtual void tts_speak(const String &p_text, const String &p_voice, int p_volume = 50, float p_pitch = 1.f, float p_rate = 1.f, int p_utterance_id = 0, bool p_interrupt = false);
 	virtual void tts_pause();
 	virtual void tts_resume();
@@ -450,6 +452,7 @@ public:
 
 	virtual void window_request_attention(WindowID p_window = MAIN_WINDOW_ID) = 0;
 	virtual void window_move_to_foreground(WindowID p_window = MAIN_WINDOW_ID) = 0;
+	virtual void window_grab_focus(WindowID p_window = MAIN_WINDOW_ID) { return; };
 	virtual bool window_is_focused(WindowID p_window = MAIN_WINDOW_ID) const = 0;
 
 	virtual void window_set_window_buttons_offset(const Vector2i &p_offset, WindowID p_window = MAIN_WINDOW_ID) {}
@@ -461,6 +464,8 @@ public:
 
 	virtual void window_set_ime_active(const bool p_active, WindowID p_window = MAIN_WINDOW_ID);
 	virtual void window_set_ime_position(const Point2i &p_pos, WindowID p_window = MAIN_WINDOW_ID);
+
+	virtual Dictionary get_all_window_data() { return Dictionary(); };
 
 	virtual bool window_maximize_on_title_dbl_click() const { return false; }
 	virtual bool window_minimize_on_title_dbl_click() const { return false; }
