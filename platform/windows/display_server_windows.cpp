@@ -2484,38 +2484,54 @@ void DisplayServerWindows::multi_cursor_event(CursorID p_cursor, int flags) {
 
 	POINT resetPos;
 	GetCursorPos(&resetPos);
-	// POINT p;
-	// p.x = cd.pos.x;
-	// p.y = cd.pos.y;
-	// ClientToScreen(windows[_get_focused_window_or_popup()].hWnd, &p);
 
-	INPUT Input_[1];
-	ZeroMemory(Input_, sizeof(INPUT) * 1);
-	Input_[0].type = INPUT_MOUSE;
-	Input_[0].mi.dwFlags = MOUSEEVENTF_LEFTUP;
-	SendInput(1, Input_, sizeof(INPUT));
-	// if(get_mouse_state(0)){
-	// }
-	SetCursorPos(cd.pos.x + screenRect.left, cd.pos.y + screenRect.top);
+	if(flags == 1){
+		// POINT p;
+		// p.x = cd.pos.x;
+		// p.y = cd.pos.y;
+		// ClientToScreen(windows[_get_focused_window_or_popup()].hWnd, &p);
+
+		INPUT Input_[1];
+		ZeroMemory(Input_, sizeof(INPUT) * 1);
+		Input_[0].type = INPUT_MOUSE;
+		Input_[0].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+		SendInput(1, Input_, sizeof(INPUT));
+		// if(get_mouse_state(0)){
+		// }
+		SetCursorPos(cd.pos.x + screenRect.left, cd.pos.y + screenRect.top);
 
 
-	INPUT Input[3];
-	ZeroMemory(Input, sizeof(INPUT) * 3);
-	
-	Input[0].type = INPUT_MOUSE;
-	Input[0].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+		INPUT Input[3];
+		ZeroMemory(Input, sizeof(INPUT) * 3);
+		
+		Input[0].type = INPUT_MOUSE;
+		Input[0].mi.dwFlags = MOUSEEVENTF_LEFTUP;
 
-	Input[1].type = INPUT_MOUSE;
-	Input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+		Input[1].type = INPUT_MOUSE;
+		Input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
 
-	Input[2].type = INPUT_MOUSE;
-	Input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
-	SendInput(3, Input, sizeof(INPUT));
+		Input[2].type = INPUT_MOUSE;
+		Input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+		SendInput(3, Input, sizeof(INPUT));
 
-	// Input[0].mi.dwFlags = flags;
-	// SendInput(1, Input, sizeof(INPUT));
+		// Input[0].mi.dwFlags = flags;
+		// SendInput(1, Input, sizeof(INPUT));
 
-	SetCursorPos(resetPos.x, resetPos.y);
+		SetCursorPos(resetPos.x, resetPos.y);
+	} else {
+		SetCursorPos(cd.pos.x + screenRect.left, cd.pos.y + screenRect.top);
+
+		INPUT Input[2];
+		ZeroMemory(Input, sizeof(INPUT) * 2);
+		
+		Input[0].type = INPUT_MOUSE;
+		Input[0].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+
+		Input[1].type = INPUT_MOUSE;
+		Input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+
+		SendInput(2, Input, sizeof(INPUT));
+	}
 }
 
 bool DisplayServerWindows::multi_cursor_get_state(CursorID p_cursor, int button) {

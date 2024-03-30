@@ -333,13 +333,20 @@ void Viewport::_sub_window_update(Window *p_window) {
 		int close_v_ofs = p_window->theme_cache.close_v_offset;
 		int icon_h_ofs = p_window->theme_cache.icon_h_offset;
 		int icon_v_ofs = p_window->theme_cache.icon_v_offset;
+		int title_v_ofs = p_window->theme_cache.icon_v_offset;
+		int controls_left = p_window->theme_cache.controls_left;
+		Ref<Texture2D> controls_icon = p_window->theme_cache.controls_icon;
 
 		TextLine title_text = TextLine(p_window->atr(p_window->get_title()), title_font, font_size);
 		title_text.set_width(r.size.width - panel->get_minimum_size().x - close_h_ofs);
 		title_text.set_direction(p_window->is_layout_rtl() ? TextServer::DIRECTION_RTL : TextServer::DIRECTION_LTR);
 		// int x = (r.size.width - title_text.get_size().x) / 2;
-		int x = p_window->theme_cache.center_title ? (r.size.width - title_text.get_size().x) / 2 : 32.0;
+		int x = p_window->theme_cache.center_title ? (r.size.width - title_text.get_size().x) / 2 : 32.0 + title_v_ofs;
 		int y = (-title_height - title_text.get_size().y) / 2;
+
+		if(controls_left && !p_window->theme_cache.center_title){
+			x = controls_icon->get_size().x + 12 + title_v_ofs;
+		}
 
 		Color font_outline_color = p_window->theme_cache.title_outline_modulate;
 		int outline_size = p_window->theme_cache.title_outline_size;
@@ -348,17 +355,26 @@ void Viewport::_sub_window_update(Window *p_window) {
 		}
 		title_text.draw(sw.canvas_item, r.position + Point2(x, y), title_color);
 
-		Ref<Texture2D> controls_icon = p_window->theme_cache.controls_icon;
 		// controls_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_h_ofs - controls_icon->get_size().x, -close_v_ofs));
-		controls_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - controls_icon->get_size().x + close_h_ofs, -controls_icon->get_size().y + close_v_ofs));
 
 		bool pressed = gui.subwindow_focused == sw.window && gui.subwindow_drag == SUB_WINDOW_DRAG_CLOSE && gui.subwindow_drag_close_inside;
 		Ref<Texture2D> close_icon = pressed ? p_window->theme_cache.close_pressed : p_window->theme_cache.close;
 		// close_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_h_ofs - close_icon->get_size().x, -close_v_ofs));
-		close_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_icon->get_size().x + close_h_ofs, -close_icon->get_size().y + close_v_ofs));
+
+		if(controls_left){
+			controls_icon->draw(sw.canvas_item, r.position + Vector2(close_h_ofs, -controls_icon->get_size().y + close_v_ofs));
+			close_icon->draw(sw.canvas_item, r.position + Vector2(close_h_ofs, -close_icon->get_size().y + close_v_ofs));
+		} else {
+			controls_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - controls_icon->get_size().x + close_h_ofs, -controls_icon->get_size().y + close_v_ofs));
+			close_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_icon->get_size().x + close_h_ofs, -close_icon->get_size().y + close_v_ofs));
+		}	
 		
 		Ref<Texture2D> icon = p_window->theme_cache.icon;
-		icon->draw(sw.canvas_item, r.position + Vector2(icon_h_ofs, -icon->get_size().y + icon_v_ofs));
+		if(controls_left){
+			icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - icon->get_size().x + icon_h_ofs, -icon->get_size().y + icon_v_ofs));
+		} else {
+			icon->draw(sw.canvas_item, r.position + Vector2(icon_h_ofs, -icon->get_size().y + icon_v_ofs));
+		}
 	}
 
 	RS::get_singleton()->canvas_item_add_texture_rect(sw.canvas_item, r, sw.window->get_texture()->get_rid());
@@ -1546,7 +1562,7 @@ void Viewport::_gui_show_tooltip() {
 	panel->set_transient(true);
 	panel->set_flag(Window::FLAG_NO_FOCUS, true);
 	panel->set_flag(Window::FLAG_POPUP, false);
-	panel->set_flag(Window::FLAG_MOUSE_PASSTHROUGH, true);
+	// panel->set_flag(Window::FLAG_MOUSE_PASSTHROUGH, true);
 	panel->set_wrap_controls(true);
 	panel->add_child(base_tooltip);
 	panel->gui_parent = this;
@@ -3020,7 +3036,11 @@ bool Viewport::_sub_windows_forward_input(const Ref<InputEvent> &p_event) {
 
 					Rect2 close_rect;
 					// close_rect.position = Vector2(r.position.x + r.size.x - close_h_ofs - close_icon->get_size().x, r.position.y - close_v_ofs);
-					close_rect.position = Vector2(r.position.x + r.size.x - close_icon->get_size().x + close_h_ofs, r.position.y - close_icon->get_size().y + close_v_ofs);
+					if(sw.window->theme_cache.controls_left){
+						close_rect.position = Vector2(r.position.x + close_h_ofs, r.position.y - close_icon->get_size().y + close_v_ofs);
+					} else {
+						close_rect.position = Vector2(r.position.x + r.size.x - close_icon->get_size().x + close_h_ofs, r.position.y - close_icon->get_size().y + close_v_ofs);
+					}
 					close_rect.size = close_icon->get_size();
 
 					if (gui.subwindow_focused != sw.window) {

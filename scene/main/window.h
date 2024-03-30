@@ -209,6 +209,7 @@ private:
 		int title_font_size = 0;
 		Color title_color;
 		int title_height = 0;
+		int title_v_ofs = 0;
 		Color title_outline_modulate;
 		int title_outline_size = 0;
 		int center_title = 0;
@@ -222,6 +223,7 @@ private:
 		int close_expand = 0;
 		int icon_h_offset = 0;
 		int icon_v_offset = 0;
+		int controls_left = 0;
 
 		int resize_margin = 0;
 	} theme_cache;
