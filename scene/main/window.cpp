@@ -2986,11 +2986,13 @@ void Window::_bind_methods() {
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, title_outline_size);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, center_title);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, controls_left);
-	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, title_v_ofs);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, title_h_offset);
 
 	BIND_THEME_ITEM(Theme::DATA_TYPE_ICON, Window, close);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_ICON, Window, close_pressed);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_ICON, Window, controls_icon);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_ICON, Window, controls_icon_unfocused);
+	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, controls_unfocused);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_ICON, Window, icon);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, close_h_offset);
 	BIND_THEME_ITEM(Theme::DATA_TYPE_CONSTANT, Window, close_v_offset);

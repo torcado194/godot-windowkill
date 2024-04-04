@@ -209,7 +209,7 @@ private:
 		int title_font_size = 0;
 		Color title_color;
 		int title_height = 0;
-		int title_v_ofs = 0;
+		int title_h_offset = 0;
 		Color title_outline_modulate;
 		int title_outline_size = 0;
 		int center_title = 0;
@@ -217,6 +217,8 @@ private:
 		Ref<Texture2D> close;
 		Ref<Texture2D> close_pressed;
 		Ref<Texture2D> controls_icon;
+		Ref<Texture2D> controls_icon_unfocused;
+		int controls_unfocused = 0;
 		Ref<Texture2D> icon;
 		int close_h_offset = 0;
 		int close_v_offset = 0;

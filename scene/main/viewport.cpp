@@ -333,19 +333,19 @@ void Viewport::_sub_window_update(Window *p_window) {
 		int close_v_ofs = p_window->theme_cache.close_v_offset;
 		int icon_h_ofs = p_window->theme_cache.icon_h_offset;
 		int icon_v_ofs = p_window->theme_cache.icon_v_offset;
-		int title_v_ofs = p_window->theme_cache.icon_v_offset;
+		int title_h_offset = p_window->theme_cache.title_h_offset;
 		int controls_left = p_window->theme_cache.controls_left;
-		Ref<Texture2D> controls_icon = p_window->theme_cache.controls_icon;
+		Ref<Texture2D> controls_icon = gui.subwindow_focused == sw.window || !p_window->theme_cache.controls_unfocused ? p_window->theme_cache.controls_icon : p_window->theme_cache.controls_icon_unfocused;
 
 		TextLine title_text = TextLine(p_window->atr(p_window->get_title()), title_font, font_size);
 		title_text.set_width(r.size.width - panel->get_minimum_size().x - close_h_ofs);
 		title_text.set_direction(p_window->is_layout_rtl() ? TextServer::DIRECTION_RTL : TextServer::DIRECTION_LTR);
 		// int x = (r.size.width - title_text.get_size().x) / 2;
-		int x = p_window->theme_cache.center_title ? (r.size.width - title_text.get_size().x) / 2 : 32.0 + title_v_ofs;
+		int x = p_window->theme_cache.center_title ? (r.size.width - title_text.get_size().x) / 2 : 32.0 + title_h_offset;
 		int y = (-title_height - title_text.get_size().y) / 2;
 
 		if(controls_left && !p_window->theme_cache.center_title){
-			x = controls_icon->get_size().x + 12 + title_v_ofs;
+			x = controls_icon->get_size().x + 12 + title_h_offset;
 		}
 
 		Color font_outline_color = p_window->theme_cache.title_outline_modulate;
@@ -363,10 +363,14 @@ void Viewport::_sub_window_update(Window *p_window) {
 
 		if(controls_left){
 			controls_icon->draw(sw.canvas_item, r.position + Vector2(close_h_ofs, -controls_icon->get_size().y + close_v_ofs));
-			close_icon->draw(sw.canvas_item, r.position + Vector2(close_h_ofs, -close_icon->get_size().y + close_v_ofs));
+			if(gui.subwindow_focused == sw.window){
+				close_icon->draw(sw.canvas_item, r.position + Vector2(close_h_ofs, -close_icon->get_size().y + close_v_ofs));
+			}
 		} else {
 			controls_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - controls_icon->get_size().x + close_h_ofs, -controls_icon->get_size().y + close_v_ofs));
-			close_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_icon->get_size().x + close_h_ofs, -close_icon->get_size().y + close_v_ofs));
+			if(gui.subwindow_focused == sw.window){
+				close_icon->draw(sw.canvas_item, r.position + Vector2(r.size.width - close_icon->get_size().x + close_h_ofs, -close_icon->get_size().y + close_v_ofs));
+			}
 		}	
 		
 		Ref<Texture2D> icon = p_window->theme_cache.icon;
