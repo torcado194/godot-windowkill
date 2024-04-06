@@ -226,6 +226,7 @@ private:
 		int icon_h_offset = 0;
 		int icon_v_offset = 0;
 		int controls_left = 0;
+		int close_hide = 0;
 
 		int resize_margin = 0;
 	} theme_cache;
